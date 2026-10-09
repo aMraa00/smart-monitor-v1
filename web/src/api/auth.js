@@ -32,6 +32,17 @@ export async function createUser({ email, password, name, role }) {
   return data.user;
 }
 
+/** PATCH /auth/users/:userId - admin only: update account. */
+export async function updateUser(userId, patch) {
+  const { data } = await request({ method: 'patch', url: `/auth/users/${userId}`, data: patch });
+  return data.user;
+}
+
+/** DELETE /auth/users/:userId - admin only. */
+export async function deleteUser(userId) {
+  await request({ method: 'delete', url: `/auth/users/${userId}` });
+}
+
 /** POST /auth/logout - best effort; the local session is cleared either way. */
 export async function logout() {
   try {

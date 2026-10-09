@@ -9,7 +9,7 @@
  * server-side seeding (scripts/seed.js, BOOTSTRAP_ADMIN_EMAIL).
  */
 
-const { User, ROLES } = require('../models');
+const { User, Device, ROLES } = require('../models');
 const ApiError = require('../utils/apiError');
 const tokenService = require('./token.service');
 
@@ -163,6 +163,84 @@ async function createUser({ email, password, name, role }) {
   return { user: user.toPublicJSON() };
 }
 
+async function adminCount() {
+  return User.countDocuments({ role: 'admin' });
+}
+
+/**
+ * Admin: update account fields (name, role, email, optional password reset).
+ * Revokes all refresh tokens when the password changes.
+ */
+async function updateUser(userId, patch, actingUserId) {
+  const user = await User.findById(userId);
+  if (!user) throw ApiError.notFound('USER_NOT_FOUND', 'Account not found');
+
+  const self = actingUserId && user._id.toString() === actingUserId.toString();
+
+  if (patch.email !== undefined) {
+    const normalised = String(patch.email).trim().toLowerCase();
+    if (normalised !== user.email) {
+      const taken = await User.findOne({ email: normalised }).lean();
+      if (taken) throw ApiError.conflict('AUTH_EMAIL_TAKEN', 'An account with this email already exists');
+      user.email = normalised;
+    }
+  }
+
+  if (patch.name !== undefined) user.name = patch.name || '';
+
+  if (patch.role !== undefined && patch.role !== user.role) {
+    if (self) {
+      throw ApiError.badRequest('USER_SELF_ROLE', 'You cannot change your own role');
+    }
+    if (user.role === 'admin' && patch.role !== 'admin') {
+      const admins = await adminCount();
+      if (admins <= 1) {
+        throw ApiError.badRequest('USER_LAST_ADMIN', 'Cannot demote the last admin account');
+      }
+    }
+    user.role = ROLES.includes(patch.role) ? patch.role : user.role;
+  }
+
+  if (patch.password) {
+    user.passwordHash = await User.hashPassword(patch.password);
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = null;
+    await tokenService.revokeAllForUser(user._id);
+  }
+
+  await user.save();
+  return { user: user.toPublicJSON() };
+}
+
+/**
+ * Admin: delete an account. Blocked for self, last admin, or owners with devices.
+ */
+async function deleteUser(userId, actingUserId) {
+  const user = await User.findById(userId);
+  if (!user) throw ApiError.notFound('USER_NOT_FOUND', 'Account not found');
+
+  if (actingUserId && user._id.toString() === actingUserId.toString()) {
+    throw ApiError.badRequest('USER_SELF_DELETE', 'You cannot delete your own account');
+  }
+
+  if (user.role === 'admin') {
+    const admins = await adminCount();
+    if (admins <= 1) throw ApiError.badRequest('USER_LAST_ADMIN', 'Cannot delete the last admin account');
+  }
+
+  const owned = await Device.countDocuments({ owner: user._id });
+  if (owned > 0) {
+    throw ApiError.badRequest(
+      'USER_OWNS_DEVICES',
+      `Account owns ${owned} device(s). Transfer or revoke them first.`
+    );
+  }
+
+  await tokenService.revokeAllForUser(user._id);
+  await User.deleteOne({ _id: user._id });
+  return { id: userId };
+}
+
 /**
  * Create/promote the first privileged accounts from the environment.
  *
@@ -221,5 +299,7 @@ module.exports = {
   issueSession,
   listUsers,
   createUser,
+  updateUser,
+  deleteUser,
   ensureBootstrapAccounts,
 };

@@ -11,6 +11,8 @@ const {
   refreshSchema,
   createUserSchema,
   listUsersQuerySchema,
+  userIdParamsSchema,
+  updateUserSchema,
 } = require('../validators/auth.validator');
 
 const router = express.Router();
@@ -36,6 +38,20 @@ router.post(
   requireRole('admin'),
   validate({ body: createUserSchema }),
   controller.createUser
+);
+router.patch(
+  '/users/:userId',
+  authenticate,
+  requireRole('admin'),
+  validate({ params: userIdParamsSchema, body: updateUserSchema }),
+  controller.updateUser
+);
+router.delete(
+  '/users/:userId',
+  authenticate,
+  requireRole('admin'),
+  validate({ params: userIdParamsSchema }),
+  controller.deleteUser
 );
 
 module.exports = router;

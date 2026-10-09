@@ -100,6 +100,22 @@
   border-bottom: none;
 }
 
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 -0.25rem;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.button--sm {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.82rem;
+}
+
 /* ------------------------------------------------------------ alert list */
 
 .alert-list {

@@ -35,8 +35,16 @@ export function StatTile({ capability, reading, trend = [], time, size = 'defaul
         <span className="tile__icon-badge" aria-hidden="true">
           {meta.icon}
         </span>
-        <span className="tile__label">{meta.label}</span>
-        {!healthy && <span className="tile__quality">{qualityLabel(quality, t)}</span>}
+        <div className="tile__meta">
+          <span className="tile__label" title={meta.label}>
+            {meta.label}
+          </span>
+          {!healthy && (
+            <span className={`tile__quality tile__quality--${quality || 'unknown'}`.trim()} title={qualityLabel(quality, t)}>
+              {qualityLabel(quality, t)}
+            </span>
+          )}
+        </div>
       </header>
 
       <div className="tile__value">

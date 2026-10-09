@@ -50,4 +50,16 @@ const createUser = asyncHandler(async (req, res) => {
   return created(res, { user });
 });
 
-module.exports = { register, login, refresh, logout, me, listUsers, createUser };
+/** PATCH /users/:userId - admin only: update account. */
+const updateUser = asyncHandler(async (req, res) => {
+  const { user } = await authService.updateUser(req.params.userId, req.body, req.user._id);
+  return ok(res, { user });
+});
+
+/** DELETE /users/:userId - admin only: remove account. */
+const deleteUser = asyncHandler(async (req, res) => {
+  await authService.deleteUser(req.params.userId, req.user._id);
+  return noContent(res);
+});
+
+module.exports = { register, login, refresh, logout, me, listUsers, createUser, updateUser, deleteUser };

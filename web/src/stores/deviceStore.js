@@ -21,7 +21,7 @@ export const useDeviceStore = create((set, get) => ({
       set({ devices, meta, loading: false });
       return devices;
     } catch (error) {
-      set({ loading: false, error: error.message });
+      set({ loading: false, error });
       throw error;
     }
   },

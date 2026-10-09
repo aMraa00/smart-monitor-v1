@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useI18n } from '../../i18n/useI18n';
+import { useApiError } from '../../i18n/useApiError';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function AuthForm({ mode, onSubmit, loading }) {
   const { t } = useI18n();
+  const { message: apiError } = useApiError();
   const isRegister = mode === 'register';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +23,7 @@ export function AuthForm({ mode, onSubmit, loading }) {
     try {
       await onSubmit(isRegister ? { email: email.trim(), password, name: name.trim() } : { email: email.trim(), password });
     } catch (err) {
-      setError(err.message || 'Something went wrong.');
+      setError(apiError(err));
     }
   }
 

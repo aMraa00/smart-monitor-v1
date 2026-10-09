@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useI18n } from '../../i18n/useI18n';
+import { useApiError } from '../../i18n/useApiError';
 
 export function TransferForm({ onTransfer, loading }) {
   const { t } = useI18n();
+  const { message: apiError } = useApiError();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
@@ -13,7 +15,7 @@ export function TransferForm({ onTransfer, loading }) {
       await onTransfer(email.trim());
       setEmail('');
     } catch (err) {
-      setError(err.message || t('deviceDetail.transferFailed'));
+      setError(apiError(err));
     }
   }
 

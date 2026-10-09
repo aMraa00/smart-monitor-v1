@@ -7,10 +7,12 @@ import { useDeviceStore } from '../stores/deviceStore';
 import { useUiStore } from '../stores/uiStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { useI18n } from '../i18n/useI18n';
+import { useApiError } from '../i18n/useApiError';
 
 /** Device inventory: search, claim, open. */
 export function DevicesPage() {
   const { t } = useI18n();
+  const { message: apiError } = useApiError();
   const { devices, loading, error, load, claim } = useDeviceStore();
   const toast = useUiStore((s) => s.toast);
   const [query, setQuery] = useState('');
@@ -67,7 +69,7 @@ export function DevicesPage() {
         </div>
       </header>
 
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error">{apiError(error)}</p>}
       {loading && devices.length === 0 ? (
         <LoadingBlock label={t('devices.loading')} />
       ) : filtered.length === 0 ? (

@@ -11,6 +11,7 @@ import { useTelemetry } from '../hooks/useTelemetry';
 import { addRealtimeListener, subscribeDevice } from '../hooks/useSocket';
 import { useDebounce } from '../hooks/useDebounce';
 import { useI18n } from '../i18n/useI18n';
+import { alertSeverityLabel } from '../i18n/alertSeverity';
 import { describeCapabilityI18n } from '../utils/capabilities';
 import { formatRelative, isOnline } from '../utils/formatters';
 
@@ -66,7 +67,11 @@ export function DashboardPage() {
       if (seen.has(key)) return;
       seen.add(key);
       const label = describeCapabilityI18n(payload.capability, t).label;
-      toast(t('alert.body', { label, value: payload.value, severity: payload.severity }), 'danger', 8000);
+      toast(
+        t('alert.body', { label, value: payload.value, severity: alertSeverityLabel(payload.severity, t) }),
+        'danger',
+        8000
+      );
     });
     return off;
   }, [toast, t]);

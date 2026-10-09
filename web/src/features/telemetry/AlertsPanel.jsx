@@ -8,6 +8,7 @@ import * as devicesApi from '../../api/devices';
 import { addRealtimeListener } from '../../hooks/useSocket';
 import { describeCapabilityI18n, orderCapabilities } from '../../utils/capabilities';
 import { useI18n } from '../../i18n/useI18n';
+import { useApiError } from '../../i18n/useApiError';
 import { formatDateTime, formatValue } from '../../utils/formatters';
 
 const SEVERITIES = [
@@ -31,6 +32,7 @@ function severityLabel(severity, t) {
 
 export function AlertsPanel({ deviceId, capabilities = [] }) {
   const { t, dateLocale } = useI18n();
+  const { message: apiError } = useApiError();
   const capabilitiesList = orderCapabilities(capabilities);
   const [rules, setRules] = useState(null);
   const [alerts, setAlerts] = useState([]);
@@ -57,7 +59,7 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
       setAlerts(alertList);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      setError(apiError(err));
       setRules([]);
     }
   }, [deviceId]);
@@ -91,7 +93,7 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
       setModalOpen(false);
       await reload();
     } catch (err) {
-      setError(err.message);
+      setError(apiError(err));
     } finally {
       setSaving(false);
     }

@@ -17,6 +17,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { addRealtimeListener, subscribeDevice } from '../hooks/useSocket';
 import { useI18n } from '../i18n/useI18n';
+import { useApiError } from '../i18n/useApiError';
 import { isOnline, formatDateTime, formatRelative, STATUS_TONE, deviceStatusLabel } from '../utils/formatters';
 
 /** Roles allowed to revoke/delete a device (mirrors `requireRole` server-side). */
@@ -31,6 +32,7 @@ function timeQualityLabel(quality, t) {
 
 export function DeviceDetailPage() {
   const { t, dateLocale } = useI18n();
+  const { message: apiError } = useApiError();
   const { deviceId } = useParams();
   const navigate = useNavigate();
   const toast = useUiStore((s) => s.toast);
@@ -114,7 +116,7 @@ export function DeviceDetailPage() {
       setSecret(result.deviceSecret);
       toast(t('deviceDetail.toastSecret'), 'warn');
     } catch (err) {
-      toast(err.message, 'danger');
+      toast(apiError(err), 'danger');
     }
   }
 
@@ -124,7 +126,7 @@ export function DeviceDetailPage() {
       await loadDevice();
       toast(t('deviceDetail.toastTransferred', { email: toEmail }), 'ok');
     } catch (err) {
-      toast(err.message, 'danger');
+      toast(apiError(err), 'danger');
     }
   }
 
@@ -134,7 +136,7 @@ export function DeviceDetailPage() {
       await loadDevice();
       toast(t('deviceDetail.toastRevoked'), 'warn');
     } catch (err) {
-      toast(err.message, 'danger');
+      toast(apiError(err), 'danger');
     } finally {
       setConfirm(null);
     }
@@ -147,7 +149,7 @@ export function DeviceDetailPage() {
       toast(t('deviceDetail.toastDeleted'), 'ok');
       navigate('/devices', { replace: true });
     } catch (err) {
-      toast(err.message, 'danger');
+      toast(apiError(err), 'danger');
     } finally {
       setConfirm(null);
     }
@@ -158,7 +160,7 @@ export function DeviceDetailPage() {
       <EmptyState
         icon="🚫"
         title={error.status === 404 ? t('deviceDetail.notFound') : t('deviceDetail.loadFailed')}
-        hint={error.status === 404 ? t('deviceDetail.notFoundHint') : error.message}
+        hint={error.status === 404 ? t('deviceDetail.notFoundHint') : apiError(error)}
         action={
           <Link className="button button--primary" to="/devices">
             {t('deviceDetail.backToDevices')}

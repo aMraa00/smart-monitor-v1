@@ -3,6 +3,7 @@ import { addRealtimeListener } from './useSocket';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { useI18n } from '../i18n/useI18n';
 import { describeCapabilityI18n } from '../utils/capabilities';
+import { alertSeverityLabel } from '../i18n/alertSeverity';
 
 /** Browser Notification API for `alert:raised` (foreground or background tab). */
 export function useAlertNotifications(enabled) {
@@ -20,7 +21,7 @@ export function useAlertNotifications(enabled) {
       const body = t('alert.body', {
         label,
         value: payload.value,
-        severity: payload.severity,
+        severity: alertSeverityLabel(payload.severity, t),
       });
 
       try {

@@ -8,6 +8,7 @@ import { listUsers, createUser, updateUser, deleteUser } from '../api/auth';
 import { useAuth } from '../hooks/useAuth';
 import { useUiStore } from '../stores/uiStore';
 import { useI18n } from '../i18n/useI18n';
+import { useApiError } from '../i18n/useApiError';
 
 /** Accent per role, mirroring Settings.jsx. */
 const ROLE_TONE = { admin: 'info', manager: 'warn', owner: 'neutral', viewer: 'neutral' };
@@ -36,6 +37,7 @@ function RoleSelect({ value, onChange, disabled, t }) {
  */
 export function UsersPage() {
   const { t } = useI18n();
+  const { message: apiError } = useApiError();
   const { user: me } = useAuth();
   const [users, setUsers] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -94,7 +96,7 @@ export function UsersPage() {
       if (target) toast(t('users.deletedToast', { email: target.email }), 'ok');
       setDeleteTarget(null);
     } catch (err) {
-      toast(err.message || t('users.deleteFailed'), 'danger');
+      toast(apiError(err), 'danger');
     } finally {
       setDeleting(false);
     }
@@ -111,12 +113,12 @@ export function UsersPage() {
         </div>
       </header>
 
-      {error && <p className="form__error">{error.message || t('users.loadFailed')}</p>}
+      {error && <p className="form__error">{apiError(error)}</p>}
       {loading ? (
         <LoadingBlock label={t('users.loading')} />
       ) : (
         <>
-          <UserCreateForm onCreate={handleCreate} creating={creating} t={t} />
+          <UserCreateForm onCreate={handleCreate} creating={creating} t={t} apiError={apiError} />
           <Card title={t('users.listTitle')} subtitle={t('users.listSubtitle')}>
             {users.length === 0 ? (
               <EmptyState icon="👥" title={t('users.emptyTitle')} hint={t('users.emptyHint')} />
@@ -176,6 +178,7 @@ export function UsersPage() {
         onClose={() => setEditUser(null)}
         onSave={handleUpdate}
         t={t}
+        apiError={apiError}
       />
 
       <Modal
@@ -204,7 +207,7 @@ export function UsersPage() {
   );
 }
 
-function UserCreateForm({ onCreate, creating, t }) {
+function UserCreateForm({ onCreate, creating, t, apiError }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -222,7 +225,7 @@ function UserCreateForm({ onCreate, creating, t }) {
       setRole('owner');
       setMessage({ tone: 'ok', text: t('users.createOk') });
     } catch (err) {
-      setMessage({ tone: 'danger', text: err.message || t('users.createFailed') });
+      setMessage({ tone: 'danger', text: apiError(err) });
     }
   }
 
@@ -256,7 +259,7 @@ function UserCreateForm({ onCreate, creating, t }) {
   );
 }
 
-function UserEditModal({ user, selfId, onClose, onSave, t }) {
+function UserEditModal({ user, selfId, onClose, onSave, t, apiError }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('owner');
@@ -290,7 +293,7 @@ function UserEditModal({ user, selfId, onClose, onSave, t }) {
       if (password.trim().length >= 8) patch.password = password;
       await onSave(user.id, patch);
     } catch (err) {
-      setError(err.message || t('users.saveFailed'));
+      setError(apiError(err));
     } finally {
       setSaving(false);
     }

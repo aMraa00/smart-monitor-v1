@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal';
 import { useI18n } from '../../i18n/useI18n';
+import { useApiError } from '../../i18n/useApiError';
 
 /**
  * Claim an unowned device with the code shown on the device display.
@@ -10,6 +11,7 @@ import { useI18n } from '../../i18n/useI18n';
  */
 export function ClaimDeviceModal({ open, onClose, onClaim, loading }) {
   const { t } = useI18n();
+  const { message: apiError } = useApiError();
   const [deviceId, setDeviceId] = useState('');
   const [claimCode, setClaimCode] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +25,7 @@ export function ClaimDeviceModal({ open, onClose, onClaim, loading }) {
       setClaimCode('');
       onClose();
     } catch (err) {
-      setError(err.message || t('devices.claimFailed'));
+      setError(apiError(err));
     }
   }
 

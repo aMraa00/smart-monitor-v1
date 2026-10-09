@@ -6,6 +6,7 @@ import { fetchHistory } from '../../api/telemetry';
 import { addRealtimeListener } from '../../hooks/useSocket';
 import { describeCapabilityI18n, orderCapabilities } from '../../utils/capabilities';
 import { useI18n } from '../../i18n/useI18n';
+import { useApiError } from '../../i18n/useApiError';
 
 const RANGES = [
   { key: '6h', labelKey: 'deviceDetail.range6h', hours: 6, bucket: 'raw', bucketKey: 'deviceDetail.bucketRaw' },
@@ -16,6 +17,7 @@ const RANGES = [
 
 export function TelemetryChart({ deviceId, capabilities = [] }) {
   const { t } = useI18n();
+  const { message: apiError } = useApiError();
   const capabilitiesList = orderCapabilities(capabilities);
   const [capability, setCapability] = useState(capabilitiesList[0] || '');
   const [rangeKey, setRangeKey] = useState('6h');
@@ -51,7 +53,7 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
       });
       setHistory(data);
     } catch (err) {
-      setError(err.message);
+      setError(apiError(err));
     } finally {
       setLoading(false);
     }

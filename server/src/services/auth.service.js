@@ -228,13 +228,9 @@ async function deleteUser(userId, actingUserId) {
     if (admins <= 1) throw ApiError.badRequest('USER_LAST_ADMIN', 'Cannot delete the last admin account');
   }
 
-  const owned = await Device.countDocuments({ owner: user._id });
-  if (owned > 0) {
-    throw ApiError.badRequest(
-      'USER_OWNS_DEVICES',
-      `Account owns ${owned} device(s). Transfer or revoke them first.`
-    );
-  }
+  // Admin delete: unclaim owned stations so the account can be removed safely.
+  // Devices stay in the fleet as `unclaimed` and may be claimed again later.
+  await Device.updateMany({ owner: user._id }, { $set: { owner: null, status: 'unclaimed' } });
 
   await tokenService.revokeAllForUser(user._id);
   await User.deleteOne({ _id: user._id });

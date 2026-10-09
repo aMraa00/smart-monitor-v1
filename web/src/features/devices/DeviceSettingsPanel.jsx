@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import Card from '../../components/Card';
 import { useI18n } from '../../i18n/useI18n';
+import { useApiError } from '../../i18n/useApiError';
 
 export function DeviceSettingsPanel({ device, onSave, saving }) {
   const { t } = useI18n();
+  const { message: apiError } = useApiError();
   const [displayName, setDisplayName] = useState(device.displayName || '');
   const [locationName, setLocationName] = useState(device.locationName || '');
   const [sampleIntervalS, setSampleIntervalS] = useState(device.config?.sampleIntervalS ?? 60);
@@ -31,7 +33,7 @@ export function DeviceSettingsPanel({ device, onSave, saving }) {
       });
       setMessage({ tone: 'ok', text: t('deviceDetail.saved') });
     } catch (err) {
-      setMessage({ tone: 'danger', text: err.message || t('deviceDetail.saveFailed') });
+      setMessage({ tone: 'danger', text: apiError(err) });
     }
   }
 

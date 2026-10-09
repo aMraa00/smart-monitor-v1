@@ -11,7 +11,7 @@ import { useTelemetry } from '../hooks/useTelemetry';
 import { addRealtimeListener, subscribeDevice } from '../hooks/useSocket';
 import { useDebounce } from '../hooks/useDebounce';
 import { useI18n } from '../i18n/useI18n';
-import { describeCapability } from '../utils/capabilities';
+import { describeCapabilityI18n } from '../utils/capabilities';
 import { formatRelative, isOnline } from '../utils/formatters';
 
 const STALE_AFTER_MS = 45_000;
@@ -65,7 +65,7 @@ export function DashboardPage() {
       const key = payload.alertId || `${payload.deviceId}:${payload.capability}:${payload.startedAt}`;
       if (seen.has(key)) return;
       seen.add(key);
-      const label = describeCapability(payload.capability).label;
+      const label = describeCapabilityI18n(payload.capability, t).label;
       toast(t('alert.body', { label, value: payload.value, severity: payload.severity }), 'danger', 8000);
     });
     return off;

@@ -43,6 +43,27 @@ export function describeCapability(name) {
   return CAPABILITIES[name] || { ...FALLBACK, label: name };
 }
 
+/**
+ * Capability metadata with a localized label (icons/units unchanged).
+ * @param {string} name
+ * @param {(key: string) => string} t from `useI18n()`
+ */
+export function describeCapabilityI18n(name, t) {
+  const base = describeCapability(name);
+  const capKey = `capabilities.${name}`;
+  const translated = t(capKey);
+  const label = translated === capKey ? base.label : translated;
+  return { ...base, label };
+}
+
+/** Localized quality flag for display on tiles. */
+export function qualityLabel(quality, t) {
+  if (!quality) return '';
+  const key = `quality.${quality}`;
+  const translated = t(key);
+  return translated === key ? quality : translated;
+}
+
 /** Deterministic widget order so a dashboard never re-shuffles between renders. */
 export function orderCapabilities(names = []) {
   const known = Object.keys(CAPABILITIES);

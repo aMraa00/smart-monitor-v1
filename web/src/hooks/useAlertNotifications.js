@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { addRealtimeListener } from './useSocket';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { useI18n } from '../i18n/useI18n';
-import { describeCapability } from '../utils/capabilities';
+import { describeCapabilityI18n } from '../utils/capabilities';
 
 /** Browser Notification API for `alert:raised` (foreground or background tab). */
 export function useAlertNotifications(enabled) {
@@ -16,7 +16,7 @@ export function useAlertNotifications(enabled) {
       if (event !== 'alert:raised' || !payload) return;
       if (Notification.permission !== 'granted') return;
 
-      const label = describeCapability(payload.capability).label;
+      const label = describeCapabilityI18n(payload.capability, t).label;
       const body = t('alert.body', {
         label,
         value: payload.value,

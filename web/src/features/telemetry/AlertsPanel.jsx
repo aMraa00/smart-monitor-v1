@@ -6,7 +6,8 @@ import EmptyState from '../../components/EmptyState';
 import { LoadingBlock } from '../../components/Spinner';
 import * as devicesApi from '../../api/devices';
 import { addRealtimeListener } from '../../hooks/useSocket';
-import { describeCapability, orderCapabilities } from '../../utils/capabilities';
+import { describeCapabilityI18n, orderCapabilities } from '../../utils/capabilities';
+import { useI18n } from '../../i18n/useI18n';
 import { formatDateTime, formatValue } from '../../utils/formatters';
 
 const SEVERITIES = ['info', 'warning', 'critical'];
@@ -21,6 +22,7 @@ const STATE_TONE = { firing: 'danger', pending: 'warn', resolved: 'ok' };
  * disagree about the current state.
  */
 export function AlertsPanel({ deviceId, capabilities = [] }) {
+  const { t } = useI18n();
   const capabilitiesList = orderCapabilities(capabilities);
   const [rules, setRules] = useState(null);
   const [alerts, setAlerts] = useState([]);
@@ -132,7 +134,7 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
           </thead>
           <tbody>
             {rules.map((rule) => {
-              const meta = describeCapability(rule.capability);
+              const meta = describeCapabilityI18n(rule.capability, t);
               const lo = rule.min === null ? '-inf' : formatValue(rule.min, { decimals: meta.decimals });
               const hi = rule.max === null ? '+inf' : formatValue(rule.max, { decimals: meta.decimals });
               return (
@@ -172,7 +174,7 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
           {alerts.map((alert) => (
             <li key={alert.id} className="alert-list__item">
               <Badge tone={STATE_TONE[alert.state] || 'neutral'}>{alert.state}</Badge>
-              <span className="alert-list__capability">{describeCapability(alert.capability).label}</span>
+              <span className="alert-list__capability">{describeCapabilityI18n(alert.capability, t).label}</span>
               <span className="alert-list__value">{formatValue(alert.lastValue, { decimals: 1 })}</span>
               <span className="alert-list__time">{formatDateTime(alert.startedAt)}</span>
             </li>
@@ -187,7 +189,7 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
             <select value={form.capability} onChange={(e) => setForm({ ...form, capability: e.target.value })} required>
               {capabilitiesList.map((name) => (
                 <option key={name} value={name}>
-                  {describeCapability(name).label}
+                  {describeCapabilityI18n(name, t).label}
                 </option>
               ))}
             </select>

@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import Badge from '../../components/Badge';
-import { describeCapability } from '../../utils/capabilities';
+import { describeCapabilityI18n } from '../../utils/capabilities';
 import { STATUS_TONE, formatRelative, isOnline } from '../../utils/formatters';
+import { useI18n } from '../../i18n/useI18n';
 
 /**
  * One row/card in the device list.
@@ -10,6 +11,7 @@ import { STATUS_TONE, formatRelative, isOnline } from '../../utils/formatters';
  * product model lists its own measurements without touching this file.
  */
 export function DeviceCard({ device }) {
+  const { t } = useI18n();
   const online = isOnline(device.lastSeenAt);
   const name = device.displayName || device.deviceId;
   const capabilities = (device.capabilities || []).slice(0, 6);
@@ -34,7 +36,7 @@ export function DeviceCard({ device }) {
 
       <ul className="device-card__caps">
         {capabilities.map((capability) => {
-          const meta = describeCapability(capability);
+          const meta = describeCapabilityI18n(capability, t);
           return (
             <li key={capability} style={{ '--chip-color': meta.color }}>
               <span aria-hidden="true">{meta.icon}</span>

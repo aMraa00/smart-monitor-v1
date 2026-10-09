@@ -4,7 +4,8 @@ import LineChart from '../../components/LineChart';
 import { LoadingBlock } from '../../components/Spinner';
 import { fetchHistory } from '../../api/telemetry';
 import { addRealtimeListener } from '../../hooks/useSocket';
-import { describeCapability, orderCapabilities } from '../../utils/capabilities';
+import { describeCapabilityI18n, orderCapabilities } from '../../utils/capabilities';
+import { useI18n } from '../../i18n/useI18n';
 
 const RANGES = [
   { key: '6h', label: '6 h', hours: 6, bucket: 'raw' },
@@ -21,6 +22,7 @@ const RANGES = [
  * band. Short ranges use raw points and refresh when live data arrives.
  */
 export function TelemetryChart({ deviceId, capabilities = [] }) {
+  const { t } = useI18n();
   const capabilitiesList = orderCapabilities(capabilities);
   const [capability, setCapability] = useState(capabilitiesList[0] || '');
   const [rangeKey, setRangeKey] = useState('6h');
@@ -85,7 +87,7 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
     };
   }, [deviceId, range.bucket, load]);
 
-  const meta = describeCapability(capability);
+  const meta = describeCapabilityI18n(capability, t);
   const points = history && history.series[0] ? history.series[0].points : [];
 
   return (
@@ -97,7 +99,7 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
           <select className="select" value={capability} onChange={(e) => setCapability(e.target.value)} aria-label="Capability">
             {capabilitiesList.map((name) => (
               <option key={name} value={name}>
-                {describeCapability(name).label}
+                {describeCapabilityI18n(name, t).label}
               </option>
             ))}
           </select>

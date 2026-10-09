@@ -1,5 +1,6 @@
-import { describeCapability, isQualityOk } from '../utils/capabilities';
+import { describeCapabilityI18n, isQualityOk, qualityLabel } from '../utils/capabilities';
 import { formatValue, formatRelative } from '../utils/formatters';
+import { useI18n } from '../i18n/useI18n';
 import Sparkline from './Sparkline';
 
 /**
@@ -10,7 +11,8 @@ import Sparkline from './Sparkline';
  * `agriculture` or `industrial` device render without a frontend change (§10.2).
  */
 export function StatTile({ capability, reading, trend = [], time, size = 'default' }) {
-  const meta = describeCapability(capability);
+  const { t } = useI18n();
+  const meta = describeCapabilityI18n(capability, t);
   const raw = reading ? reading.value : null;
   const quality = reading ? reading.quality : null;
   const healthy = isQualityOk(quality);
@@ -34,7 +36,7 @@ export function StatTile({ capability, reading, trend = [], time, size = 'defaul
           {meta.icon}
         </span>
         <span className="tile__label">{meta.label}</span>
-        {!healthy && <span className="tile__quality">{quality}</span>}
+        {!healthy && <span className="tile__quality">{qualityLabel(quality, t)}</span>}
       </header>
 
       <div className="tile__value">

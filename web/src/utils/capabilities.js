@@ -11,12 +11,12 @@
  */
 
 const CAPABILITIES = {
-  temperature: { label: 'Temperature', unit: 'C', icon: '🌡', color: '#f97316', decimals: 1, range: [-60, 125] },
-  humidity: { label: 'Humidity', unit: '%', icon: '💧', color: '#38bdf8', decimals: 1, range: [0, 100] },
-  pressure: { label: 'Pressure', unit: 'Pa', icon: '🧭', color: '#a78bfa', decimals: 0, range: [30000, 110000] },
+  temperature: { label: 'Temperature', unit: '°C', icon: '🌡', color: '#ef4444', decimals: 1, range: [-60, 125] },
+  humidity: { label: 'Humidity', unit: '%', icon: '💧', color: '#0ea5e9', decimals: 1, range: [0, 100] },
+  pressure: { label: 'Pressure', unit: 'Pa', icon: '⏲', color: '#a78bfa', decimals: 0, range: [30000, 110000] },
   illuminance: { label: 'Illuminance', unit: 'lx', icon: '☀️', color: '#facc15', decimals: 0, range: [0, 200000] },
   // CCS811 equivalent CO2 - NEVER rendered as NDIR `co2` (prompt §42).
-  eco2: { label: 'eCO2 (equivalent)', unit: 'ppm', icon: '🌫', color: '#fb923c', decimals: 0, range: [400, 60000] },
+  eco2: { label: 'eCO2 (equivalent)', unit: 'ppm', icon: '☁', color: '#10b981', decimals: 0, range: [400, 60000] },
   tvoc: { label: 'TVOC', unit: 'ppb', icon: '🧪', color: '#c084fc', decimals: 0, range: [0, 60000] },
   wind_speed: { label: 'Wind speed', unit: 'm/s', icon: '🌬', color: '#22d3ee', decimals: 2, range: [0, 75] },
   wind_rpm: { label: 'Wind RPM', unit: 'rpm', icon: '🌀', color: '#818cf8', decimals: 1, range: [0, 20000] },

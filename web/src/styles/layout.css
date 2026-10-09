@@ -88,9 +88,10 @@
 }
 
 .sidebar__link--active {
-  background: rgba(56, 189, 248, 0.12);
+  background: rgba(14, 165, 233, 0.16);
   color: var(--accent);
   font-weight: 600;
+  border: 1px solid rgba(14, 165, 233, 0.25);
 }
 
 .content {
@@ -271,16 +272,20 @@
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(56, 189, 248, 0.14), transparent), var(--bg);
+  background: transparent;
 }
 
 .auth-card {
   width: min(420px, 100%);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.6rem;
+  background: rgba(17, 24, 39, 0.72);
+  border: 1px solid var(--glass-border);
+  border-radius: calc(var(--radius) + 4px);
+  padding: 1.85rem 1.75rem;
   box-shadow: var(--shadow);
+}
+
+html[data-theme='light'] .auth-card {
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .auth-card__brand {
@@ -437,7 +442,7 @@
 
   .bottom-nav__item--active {
     color: var(--accent);
-    background: rgba(56, 189, 248, 0.1);
+    background: rgba(14, 165, 233, 0.14);
   }
 
   .bottom-nav__icon {

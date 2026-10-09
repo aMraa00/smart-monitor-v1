@@ -144,6 +144,7 @@ export function DashboardPage() {
 
       {selected && (
         <section className="live-hero" aria-live="polite">
+          <div className="live-hero__visual" aria-hidden="true" />
           <div className="live-hero__main">
             <p className="live-hero__eyebrow">{selected.locationName || t('dashboard.myStation')}</p>
             <h2 className="live-hero__title">{displayName}</h2>

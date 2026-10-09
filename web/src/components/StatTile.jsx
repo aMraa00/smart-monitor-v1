@@ -32,7 +32,7 @@ export function StatTile({ capability, reading, trend = [], time, size = 'defaul
       style={{ '--tile-color': meta.color }}
     >
       <header className="tile__head">
-        <span className="tile__icon" aria-hidden="true">
+        <span className="tile__icon-badge" aria-hidden="true">
           {meta.icon}
         </span>
         <span className="tile__label">{meta.label}</span>

@@ -19,13 +19,14 @@ export function DeviceCard({ device }) {
 
   return (
     <Link to={`/devices/${device.deviceId}`} className="device-card">
+      <div className="device-card__thumb" aria-hidden="true" />
       <header className="device-card__head">
         <div>
           <h3 className="device-card__name">{name}</h3>
           <code className="device-card__id">{device.deviceId}</code>
         </div>
         <div className="device-card__badges">
-          <Badge tone={online ? 'ok' : 'warn'}>{online ? 'online' : 'offline'}</Badge>
+          <Badge tone={online ? 'ok' : 'danger'}>{online ? t('common.online') : t('common.offline')}</Badge>
           <Badge tone={STATUS_TONE[device.status] || 'neutral'}>{device.status}</Badge>
         </div>
       </header>

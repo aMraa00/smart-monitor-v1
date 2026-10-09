@@ -1,7 +1,8 @@
 /* Color tokens live in theme.css (data-theme). */
 :root {
-  --radius: 14px;
-  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --radius: 16px;
+  --font: 'Inter', 'Noto Sans Mongolian', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Noto Sans Mongolian', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 }
 
@@ -29,8 +30,9 @@ h1,
 h2,
 h3 {
   margin: 0;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 h1 {
@@ -105,14 +107,16 @@ code {
 }
 
 .button--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #04121f;
+  background: linear-gradient(180deg, #38bdf8, var(--accent));
+  border-color: rgba(14, 165, 233, 0.6);
+  color: #fff;
   font-weight: 600;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
 }
 
 .button--primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.45);
 }
 
 .button--secondary {
@@ -231,7 +235,7 @@ input:focus,
 select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.22);
 }
 
 input::placeholder {
@@ -282,9 +286,9 @@ input::placeholder {
 }
 
 .badge--ok {
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.4);
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
 .badge--warn {
@@ -301,8 +305,8 @@ input::placeholder {
 
 .badge--info {
   color: #7dd3fc;
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(14, 165, 233, 0.18);
+  border-color: rgba(14, 165, 233, 0.45);
 }
 
 .badge--neutral {

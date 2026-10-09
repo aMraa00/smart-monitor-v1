@@ -30,7 +30,7 @@ export function CapabilityWidget({ capability, latest, live, size = 'default' })
   return <StatTile capability={capability} reading={reading} trend={trend} time={time} size={size} />;
 }
 
-const FEATURED = ['temperature', 'humidity'];
+const FEATURED = ['temperature', 'humidity', 'pressure', 'eco2'];
 
 /** Render a tile for every declared capability, in registry order. */
 export function CapabilityGrid({ capabilities = [], latest, live, showFeatured = true }) {

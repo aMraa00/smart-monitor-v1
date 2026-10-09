@@ -8,8 +8,14 @@
 
 .tiles--hero {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-  margin-bottom: 0.65rem;
+  gap: 0.7rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 901px) {
+  .tiles--hero {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .tile--hero {
@@ -26,14 +32,12 @@
 }
 
 .tile {
-  background: var(--bg-soft);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--tile-color, var(--accent));
-  border-radius: 10px;
-  padding: 0.7rem 0.8rem;
+  border-radius: 14px;
+  padding: 0.85rem 0.9rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
 .tile--warn {
@@ -43,14 +47,28 @@
 .tile__head {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.55rem;
+}
+
+.tile__icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 12px;
+  font-size: 1.15rem;
+  line-height: 1;
+  background: color-mix(in srgb, var(--tile-color, var(--accent)) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tile-color, var(--accent)) 35%, transparent);
+  flex-shrink: 0;
 }
 
 .tile__label {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .tile__quality {
@@ -61,12 +79,13 @@
 }
 
 .tile__value {
-  font-size: 1.6rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   display: flex;
   align-items: baseline;
-  gap: 0.3rem;
+  gap: 0.35rem;
+  font-family: var(--font-display);
 }
 
 .tile__unit {
@@ -157,15 +176,38 @@
 }
 
 .device-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 0.55rem 0.85rem;
   padding: 0.95rem 1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.device-card__thumb {
+  grid-row: 1 / span 3;
+  align-self: start;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.35), rgba(99, 102, 241, 0.25)),
+    url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=200&q=50') center / cover;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-3d);
+}
+
+.device-card__head,
+.device-card__meta {
+  grid-column: 2;
+}
+
+.device-card__caps,
+.device-card__foot {
+  grid-column: 1 / -1;
 }
 
 .device-card:hover {

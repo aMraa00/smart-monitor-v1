@@ -2,6 +2,8 @@
 
 const reportsService = require('../services/reports.service');
 const asyncHandler = require('../utils/asyncHandler');
+const ApiError = require('../utils/apiError');
+const { isAdmin } = require('../utils/roles');
 const { ok } = require('../utils/response');
 
 const getSummary = asyncHandler(async (req, res) => {
@@ -22,10 +24,27 @@ const downloadDevicesCsv = asyncHandler(async (req, res) => {
 });
 
 const downloadUsersCsv = asyncHandler(async (req, res) => {
+  if (!isAdmin(req.user)) {
+    throw ApiError.forbidden('ADMIN_ONLY', 'Only administrators may export user accounts');
+  }
   const csv = await reportsService.exportUsersCsv();
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="smart-monitor-users.csv"');
   return res.send(csv);
 });
 
-module.exports = { getSummary, getDevices, downloadDevicesCsv, downloadUsersCsv };
+const downloadTelemetryCsv = asyncHandler(async (req, res) => {
+  const csv = await reportsService.exportTelemetryCsv(req.user, req.query);
+  const slug = req.query.deviceId ? String(req.query.deviceId).replace(/[^\w-]+/g, '') : 'all';
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="smart-monitor-telemetry-${slug}.csv"`);
+  return res.send(csv);
+});
+
+module.exports = {
+  getSummary,
+  getDevices,
+  downloadDevicesCsv,
+  downloadTelemetryCsv,
+  downloadUsersCsv,
+};

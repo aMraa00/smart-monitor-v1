@@ -27,8 +27,8 @@ export async function listUsers(params = {}) {
 }
 
 /** POST /auth/users - admin only: create an account with an explicit role. */
-export async function createUser({ email, password, name, role }) {
-  const { data } = await request({ method: 'post', url: '/auth/users', data: { email, password, name, role } });
+export async function createUser(payload) {
+  const { data } = await request({ method: 'post', url: '/auth/users', data: payload });
   return data.user;
 }
 

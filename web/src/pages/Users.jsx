@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useUiStore } from '../stores/uiStore';
 import { useI18n } from '../i18n/useI18n';
 import { useApiError } from '../i18n/useApiError';
+import { ReportExportPanel } from '../features/reports/ReportExportPanel';
 import { formatReportsUntil, hasReportsAccess } from '../utils/reportsAccess';
 
 /** Accent per role, mirroring Settings.jsx. */
@@ -51,6 +52,7 @@ export function UsersPage() {
   const toast = useUiStore((s) => s.toast);
 
   const total = meta?.total ?? users.length;
+  const usersWithReports = users.filter((u) => u.role !== 'admin' && hasReportsAccess(u));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,8 +91,13 @@ export function UsersPage() {
         ? new Date(updated.reportsAccessUntil).toLocaleDateString(dateLocale)
         : '—';
       toast(t('users.reportsExtended', { date: until }), 'ok');
-    } else if (patch.revokeReportsAccess) {
+    } else if (patch.revokeReportsAccess || patch.canAccessReports === false) {
       toast(t('users.reportsRevoked'), 'ok');
+    } else if (patch.canAccessReports === true) {
+      const until = updated.reportsAccessUntil
+        ? new Date(updated.reportsAccessUntil).toLocaleDateString(dateLocale)
+        : '—';
+      toast(t('users.reportsOpened', { date: until }), 'ok');
     } else {
       toast(t('users.updatedToast', { email: updated.email }), 'ok');
     }
@@ -130,6 +137,25 @@ export function UsersPage() {
       ) : (
         <>
           <UserCreateForm onCreate={handleCreate} creating={creating} t={t} apiError={apiError} />
+
+          <Card title={t('users.reportsExportTitle')} subtitle={t('users.reportsExportHint')}>
+            <ReportExportPanel showNote={false} />
+          </Card>
+
+          {usersWithReports.length > 0 && (
+            <Card title={t('users.reportsEntitledTitle')} subtitle={t('users.reportsEntitledHint')}>
+              <ul className="bullet-list">
+                {usersWithReports.map((u) => (
+                  <li key={u.id}>
+                    <strong>{u.email}</strong>
+                    <span className="muted"> · {formatReportsUntil(u.reportsAccessUntil, t, dateLocale)}</span>
+                    <Badge tone="ok">{t('users.reportsYes')}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
           <Card title={t('users.listTitle')} subtitle={t('users.listSubtitle')}>
             {users.length === 0 ? (
               <EmptyState icon="👥" title={t('users.emptyTitle')} hint={t('users.emptyHint')} />
@@ -171,6 +197,23 @@ export function UsersPage() {
                                   {formatReportsUntil(u.reportsAccessUntil, t, dateLocale)}
                                 </span>
                                 <div className="table-actions">
+                                  {hasReportsAccess(u) ? (
+                                    <button
+                                      type="button"
+                                      className="button button--ghost button--sm"
+                                      onClick={() => handleUpdate(u.id, { revokeReportsAccess: true }, { closeModal: false })}
+                                    >
+                                      {t('users.closeReports')}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="button button--ghost button--sm"
+                                      onClick={() => handleUpdate(u.id, { canAccessReports: true }, { closeModal: false })}
+                                    >
+                                      {t('users.openReports')}
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     className="button button--ghost button--sm"
@@ -379,6 +422,20 @@ function UserEditModal({ user, selfId, onClose, onSave, t, apiError, dateLocale 
     }
   }
 
+  async function openReports() {
+    setError('');
+    setSaving(true);
+    try {
+      await onSave(user.id, { canAccessReports: true }, { closeModal: false });
+    } catch (err) {
+      setError(apiError(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const reportsActive = hasReportsAccess(user);
+
   return (
     <Modal open={Boolean(user)} title={t('users.editTitle')} onClose={onClose}>
       <form className="form" onSubmit={submit}>
@@ -402,13 +459,25 @@ function UserEditModal({ user, selfId, onClose, onSave, t, apiError, dateLocale 
         {role !== 'admin' && (
           <div className="subsection">
             <p className="subsection__title">{t('users.reportsSection')}</p>
+            {hasReportsAccess(user) && (
+              <p className="form__success">{t('users.reportsUserCanExport')}</p>
+            )}
+            <label className="settings-toggle">
+              <span className="settings-toggle__label">{t('users.reportsToggleLabel')}</span>
+              <input
+                type="checkbox"
+                checked={reportsActive}
+                disabled={saving}
+                onChange={(e) => (e.target.checked ? openReports() : revokeReports())}
+              />
+            </label>
             <p className="muted">{formatReportsUntil(user.reportsAccessUntil, t, dateLocale)}</p>
             <div className="button-row">
-              <button type="button" className="button button--secondary" disabled={saving} onClick={extendReports}>
+              <button type="button" className="button button--secondary" disabled={saving || !reportsActive} onClick={extendReports}>
                 {t('users.extendReports')}
               </button>
-              <button type="button" className="button button--ghost" disabled={saving} onClick={revokeReports}>
-                {t('users.revokeReports')}
+              <button type="button" className="button button--ghost" disabled={saving || !reportsActive} onClick={revokeReports}>
+                {t('users.closeReports')}
               </button>
             </div>
           </div>

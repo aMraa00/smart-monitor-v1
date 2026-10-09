@@ -1,6 +1,9 @@
+import { Link } from 'react-router-dom';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
+import { ReportExportPanel } from '../features/reports/ReportExportPanel';
 import { useAuth } from '../hooks/useAuth';
+import { hasReportsAccess, formatReportsUntil } from '../utils/reportsAccess';
 import { useDeviceStore } from '../stores/deviceStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { useI18n } from '../i18n/useI18n';
@@ -10,8 +13,9 @@ import { IconBell } from '../components/AppIcons';
 const ROLE_TONE = { admin: 'info', manager: 'warn', owner: 'neutral', viewer: 'neutral' };
 
 export function SettingsPage() {
-  const { t, locale, setLocale } = useI18n();
+  const { t, locale, setLocale, dateLocale } = useI18n();
   const { user, logout } = useAuth();
+  const reportsAllowed = hasReportsAccess(user);
   const resetDevices = useDeviceStore((s) => s.reset);
   const theme = usePreferencesStore((s) => s.theme);
   const setTheme = usePreferencesStore((s) => s.setTheme);
@@ -100,6 +104,24 @@ export function SettingsPage() {
           <p className="form__success">{t('settings.alertsGranted')}</p>
         )}
       </Card>
+
+      {reportsAllowed && (
+        <Card
+          title={t('settings.reportsTitle')}
+          subtitle={
+            user?.role === 'admin'
+              ? t('settings.reportsSubtitleAdmin')
+              : t('settings.reportsSubtitleUntil', {
+                  date: formatReportsUntil(user?.reportsAccessUntil, t, dateLocale),
+                })
+          }
+        >
+          <ReportExportPanel />
+          <p className="field__hint">
+            <Link to="/reports">{t('settings.reportsFullPage')}</Link>
+          </p>
+        </Card>
+      )}
 
       <Card title={t('settings.profile')}>
         <dl className="detail-list">

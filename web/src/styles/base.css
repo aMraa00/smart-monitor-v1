@@ -285,6 +285,11 @@ input::placeholder {
   white-space: nowrap;
 }
 
+html[lang='mn'] .badge {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
 .badge--ok {
   color: #6ee7b7;
   background: rgba(16, 185, 129, 0.18);

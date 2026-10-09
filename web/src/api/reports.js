@@ -10,11 +10,22 @@ export async function fetchReportDevices() {
   return data;
 }
 
+const CSV_PATHS = {
+  devices: '/reports/export/devices.csv',
+  users: '/reports/export/users.csv',
+  telemetry: '/reports/export/telemetry.csv',
+};
+
 /** Trigger CSV download in the browser (uses Bearer token). */
-export async function downloadReportCsv(kind) {
-  const path = kind === 'users' ? '/reports/export/users.csv' : '/reports/export/devices.csv';
+export async function downloadReportCsv(kind, query = {}) {
+  const path = CSV_PATHS[kind] || CSV_PATHS.devices;
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+  });
+  const qs = params.toString();
   const base = API_BASE || '';
-  const url = `${base}${API_PREFIX}${path}`;
+  const url = `${base}${API_PREFIX}${path}${qs ? `?${qs}` : ''}`;
   const token = getAccessToken();
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -28,7 +39,15 @@ export async function downloadReportCsv(kind) {
     });
   }
   const blob = await response.blob();
-  const filename = kind === 'users' ? 'smart-monitor-users.csv' : 'smart-monitor-devices.csv';
+  const fallback =
+    kind === 'users'
+      ? 'smart-monitor-users.csv'
+      : kind === 'telemetry'
+        ? 'smart-monitor-telemetry.csv'
+        : 'smart-monitor-devices.csv';
+  const cd = response.headers.get('Content-Disposition') || '';
+  const match = /filename="([^"]+)"/i.exec(cd);
+  const filename = match ? match[1] : fallback;
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = filename;

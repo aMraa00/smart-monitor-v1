@@ -57,4 +57,16 @@ export const useAuthStore = create((set) => ({
     await authApi.logout();
     set({ user: null, accessToken: null });
   },
+
+  /** Reload profile (report access, role) from the API — e.g. after admin grants rights. */
+  async refreshUser() {
+    if (!getAccessToken()) return null;
+    try {
+      const user = await authApi.fetchMe();
+      set({ user });
+      return user;
+    } catch {
+      return null;
+    }
+  },
 }));

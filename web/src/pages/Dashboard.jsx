@@ -14,12 +14,17 @@ import { useI18n } from '../i18n/useI18n';
 import { alertSeverityLabel } from '../i18n/alertSeverity';
 import { describeCapabilityI18n } from '../utils/capabilities';
 import { formatRelative, isOnline } from '../utils/formatters';
+import { useAuth } from '../hooks/useAuth';
+import { hasReportsAccess } from '../utils/reportsAccess';
+import { ReportExportPanel } from '../features/reports/ReportExportPanel';
 
 const STALE_AFTER_MS = 45_000;
 const TIME_TONE = { ntp: 'ok', synced: 'warn', estimated: 'danger' };
 
 export function DashboardPage() {
   const { t, dateLocale } = useI18n();
+  const { user } = useAuth();
+  const showReports = hasReportsAccess(user);
   const { devices, loading, load } = useDeviceStore();
   const toast = useUiStore((s) => s.toast);
   const socketState = useUiStore((s) => s.socketState);
@@ -192,6 +197,15 @@ export function DashboardPage() {
           )}
           <Link className="button button--secondary button--block-mobile" to={`/devices/${selected.deviceId}`}>
             {t('dashboard.chartsSettings')}
+          </Link>
+        </Card>
+      )}
+
+      {showReports && (
+        <Card title={t('dashboard.reportsTitle')} subtitle={t('dashboard.reportsHint')}>
+          <ReportExportPanel showNote={false} />
+          <Link className="button button--ghost" to="/reports">
+            {t('settings.reportsFullPage')}
           </Link>
         </Card>
       )}

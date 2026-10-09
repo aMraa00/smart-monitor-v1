@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
 import { useDeviceStore } from '../stores/deviceStore';
@@ -39,6 +41,7 @@ const SOCKET_TONE = {
 export function AppLayout() {
   const { t } = useI18n();
   const { user, logout } = useAuth();
+  const refreshUser = useAuthStore((s) => s.refreshUser);
   const socketState = useSocket();
   const navigate = useNavigate();
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
@@ -49,6 +52,17 @@ export function AppLayout() {
   const alertsEnabled = usePreferencesStore((s) => s.alertsEnabled);
 
   useAlertNotifications(alertsEnabled);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    refreshUser();
+    const sync = () => refreshUser();
+    window.addEventListener('focus', sync);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') sync();
+    });
+    return () => window.removeEventListener('focus', sync);
+  }, [user?.id, refreshUser]);
 
   const visibleNav = NAV.filter((item) => canSeeNavItem(item, user));
 

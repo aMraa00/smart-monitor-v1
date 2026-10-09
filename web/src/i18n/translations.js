@@ -66,6 +66,8 @@ export const translations = {
       noTelemetry: 'Telemetry хараахан ирээгүй',
       noTelemetryHint: 'Wi‑Fi шалгаад хэдэн минут хүлээнэ үү.',
       loadingReadings: 'Уншилт ачаалж байна…',
+      reportsTitle: 'Тайлан гаргах',
+      reportsHint: 'Excel dashboard — станц, хугацаа сонгоод татна',
     },
     devices: {
       title: 'Төхөөрөмж',
@@ -493,6 +495,8 @@ export const translations = {
       noTelemetry: 'Waiting for first sample',
       noTelemetryHint: 'Check station Wi‑Fi. Updates arrive automatically.',
       loadingReadings: 'Loading readings…',
+      reportsTitle: 'Export report',
+      reportsHint: 'Excel dashboard — pick station and dates',
     },
     devices: {
       title: 'Devices',

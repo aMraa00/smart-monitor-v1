@@ -2,8 +2,11 @@
 export function hasReportsAccess(user) {
   if (!user) return false;
   if (user.role === 'admin') return true;
-  if (!user.reportsAccessUntil) return false;
-  return new Date(user.reportsAccessUntil).getTime() > Date.now();
+  if (user.reportsAccessUntil) {
+    return new Date(user.reportsAccessUntil).getTime() > Date.now();
+  }
+  // Legacy accounts: flag set before `reportsAccessUntil` existed (server backfills on /auth/me).
+  return Boolean(user.canAccessReports);
 }
 
 export function formatReportsUntil(until, t, dateLocale) {

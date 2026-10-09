@@ -14,6 +14,15 @@ const ApiError = require('../utils/apiError');
 const tokenService = require('./token.service');
 const { extendReportsUntil, revokeReportsAccess } = require('../utils/reportsAccess');
 
+/** Legacy rows: `canAccessReports` without `reportsAccessUntil` → grant 1 month once. */
+async function ensureReportsEntitlement(user) {
+  if (!user || user.role === 'admin') return;
+  if (user.canAccessReports && !user.reportsAccessUntil) {
+    extendReportsUntil(user, 1);
+    await user.save();
+  }
+}
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
 
@@ -85,6 +94,7 @@ async function login({ email, password }, ctx = {}) {
   user.lockedUntil = null;
   user.lastLoginAt = new Date();
   await user.save();
+  await ensureReportsEntitlement(user);
 
   const session = await issueSession(user, ctx);
   return { user: user.toPublicJSON(), ...session };
@@ -97,6 +107,7 @@ async function refresh(refreshToken, ctx = {}) {
     ctx
   );
   if (!user) throw ApiError.unauthorized('AUTH_INVALID_REFRESH', 'Refresh token is not valid');
+  await ensureReportsEntitlement(user);
   return {
     user: user.toPublicJSON(),
     accessToken: tokenService.signAccessToken(user),
@@ -113,6 +124,7 @@ async function logout(refreshToken) {
 async function me(userId) {
   const user = await User.findById(userId);
   if (!user) throw ApiError.unauthorized('AUTH_USER_MISSING', 'Account no longer exists');
+  await ensureReportsEntitlement(user);
   return user.toPublicJSON();
 }
 

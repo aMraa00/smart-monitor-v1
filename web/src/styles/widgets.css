@@ -6,6 +6,25 @@
   gap: 0.75rem;
 }
 
+.tiles--hero {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.tile--hero {
+  padding: 1rem 1rem 0.85rem;
+  min-height: 7.5rem;
+}
+
+.tile--hero .tile__value {
+  font-size: clamp(2rem, 8vw, 2.65rem);
+}
+
+.tile--hero .tile__label {
+  font-size: 0.72rem;
+}
+
 .tile {
   background: var(--bg-soft);
   border: 1px solid var(--border);

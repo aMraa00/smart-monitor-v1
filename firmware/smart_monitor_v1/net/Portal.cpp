@@ -45,7 +45,9 @@ String Portal::formHtml() const {
                "<form method=POST action=/save>"
                "<p><label>Wi-Fi name (SSID)<br><input name=ssid required style='width:100%'></label></p>"
                "<p><label>Wi-Fi password<br><input name=pass type=password style='width:100%'></label></p>"
-               "<p><label>Server URL<br><input name=server style='width:100%' placeholder='http://192.168.1.90:5000'></label></p>"
+               "<p><label>Server URL (required for cloud)<br><input name=server required style='width:100%' value='");
+  h += Config.serverBase();
+  h += F("'></label></p>"
                "<p><button type=submit>Save &amp; reboot</button></p>"
                "</form>"
                "<p><a href=/status>device status (JSON)</a></p>"
@@ -68,9 +70,11 @@ void Portal::handleSave() {
     return;
   }
   Config.setWifi(ssid, pass);
-  if (server.length()) Config.setServerBase(server);
+  Config.setServerBase(server.length() ? server : Config.serverBase());
   Serial.print(F("[PORTAL] credentials saved for "));
-  Serial.println(ssid);
+  Serial.print(ssid);
+  Serial.print(F(" server="));
+  Serial.println(Config.serverBase());
   s_server->send(200, "text/html",
                  F("<p>Saved. Rebooting...</p><script>setTimeout(function(){},3000)</script>"));
   delay(500);

@@ -9,7 +9,7 @@ import Sparkline from './Sparkline';
  * reading, and looks up its own label/unit/colour. That is what lets an
  * `agriculture` or `industrial` device render without a frontend change (§10.2).
  */
-export function StatTile({ capability, reading, trend = [], time }) {
+export function StatTile({ capability, reading, trend = [], time, size = 'default' }) {
   const meta = describeCapability(capability);
   const raw = reading ? reading.value : null;
   const quality = reading ? reading.quality : null;
@@ -25,7 +25,10 @@ export function StatTile({ capability, reading, trend = [], time }) {
   const displayUnit = capability === 'pressure' ? 'hPa' : meta.unit;
 
   return (
-    <article className={`tile ${healthy ? '' : 'tile--warn'}`.trim()} style={{ '--tile-color': meta.color }}>
+    <article
+      className={`tile ${size === 'hero' ? 'tile--hero' : ''} ${healthy ? '' : 'tile--warn'}`.trim()}
+      style={{ '--tile-color': meta.color }}
+    >
       <header className="tile__head">
         <span className="tile__icon" aria-hidden="true">
           {meta.icon}

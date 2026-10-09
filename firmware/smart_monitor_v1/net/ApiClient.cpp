@@ -10,8 +10,9 @@
 ApiClient Api;
 
 namespace {
-constexpr uint16_t kConnectTimeoutMs = 5000;
-constexpr uint16_t kReadTimeoutMs = 8000;
+// Render free tier can take 15–30s to wake; short timeouts look like "connection refused".
+constexpr uint16_t kConnectTimeoutMs = 20000;
+constexpr uint16_t kReadTimeoutMs = 35000;
 }  // namespace
 
 void ApiClient::setBase(const String& base) {

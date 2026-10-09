@@ -4,6 +4,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useDeviceStore } from '../stores/deviceStore';
 import { useUiStore } from '../stores/uiStore';
 import Toaster from '../components/Toaster';
+import MobileBottomNav from '../components/MobileBottomNav';
 
 /**
  * Sidebar entries, filtered by role.
@@ -68,14 +69,14 @@ export function AppLayout() {
         </NavLink>
 
         <div className="topbar__right">
-          <span className={`badge badge--${SOCKET_TONE[socketState] || 'neutral'}`} title="Realtime connection">
+          <span className={`badge badge--${SOCKET_TONE[socketState] || 'neutral'} topbar__live`} title="Realtime connection">
             {socketState === 'online' ? 'live' : socketState}
           </span>
           <span className="topbar__user" title={user?.email}>
             {user?.name || user?.email || 'Account'}
           </span>
-          {user?.role && <span className="badge badge--info">{user.role}</span>}
-          <button type="button" className="button button--ghost" onClick={handleLogout}>
+          {user?.role && <span className="badge badge--info topbar__role">{user.role}</span>}
+          <button type="button" className="button button--ghost topbar__logout" onClick={handleLogout}>
             Sign out
           </button>
         </div>
@@ -102,6 +103,7 @@ export function AppLayout() {
         </main>
       </div>
 
+      <MobileBottomNav />
       <Toaster />
     </div>
   );

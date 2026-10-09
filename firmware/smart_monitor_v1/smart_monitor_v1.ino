@@ -45,6 +45,15 @@ uint32_t tLed = 0;
 uint32_t buttonDownSince = 0;
 bool buttonWasDown = false;
 bool ledOn = false;
+/** WebServer starts only after SetupPortal.begin(); AP can come up later on Wi-Fi timeout. */
+bool portalHttpUp = false;
+
+void ensurePortalHttp() {
+  if (!Wifi.portalActive() || portalHttpUp) return;
+  SetupPortal.begin();
+  portalHttpUp = true;
+  Serial.println(F("[PORTAL] HTTP server started on http://192.168.4.1"));
+}
 
 // BOOT button on GPIO0 is active-LOW.
 bool buttonDown() { return digitalRead(PIN_BUTTON) == LOW; }
@@ -70,7 +79,7 @@ void handleButton(uint32_t now) {
       Serial.println(F("[BTN] long press -> portal"));
       if (!Wifi.portalActive()) {
         Wifi.startPortal();
-        SetupPortal.begin();
+        ensurePortalHttp();
       }
     }
   }
@@ -173,6 +182,8 @@ void handleSerial() {
     Serial.println(Config.deviceId());
     Serial.print(F("provisioned="));
     Serial.println(Config.hasIdentity() ? "yes" : "no");
+    Serial.print(F("server="));
+    Serial.println(Config.serverBase());
     Serial.print(F("pending="));
     Serial.println(Buffer.pendingCount());
     Serial.print(F("time="));
@@ -218,7 +229,7 @@ void setup() {
   Serial.println(Config.serverBase());
 
   Wifi.begin();
-  if (Wifi.portalActive()) SetupPortal.begin();
+  ensurePortalHttp();
   Uploader_.begin();
 
   const uint32_t now = millis();
@@ -230,6 +241,16 @@ void setup() {
 
 void loop() {
   const uint32_t now = millis();
+
+  if (now - tNet >= TASK_NET_CHECK_MS) {
+    tNet = now;
+    Wifi.tick();
+    ensurePortalHttp();
+    if (Wifi.connected()) {
+      if (Clock.needsSync(now, 6UL * 60UL * 60UL * 1000UL)) Clock.syncAsync();
+      if (!Config.hasIdentity()) Provisioner.run();  // register+exchange, once
+    }
+  }
 
   if (Wifi.portalActive()) SetupPortal.tick();
 
@@ -244,15 +265,6 @@ void loop() {
   if (now - tSensor >= TASK_SENSOR_POLL_MS) {
     tSensor = now;
     Samplers.pollNextDriver();  // exactly one driver per tick
-  }
-
-  if (now - tNet >= TASK_NET_CHECK_MS) {
-    tNet = now;
-    Wifi.tick();
-    if (Wifi.connected()) {
-      if (Clock.needsSync(now, 6UL * 60UL * 60UL * 1000UL)) Clock.syncAsync();
-      if (!Config.hasIdentity()) Provisioner.run();  // register+exchange, once
-    }
   }
 
   const uint32_t intervalMs = Config.sampleIntervalS() * 1000UL;

@@ -317,6 +317,12 @@
 
 /* ------------------------------------------------------------ responsive */
 
+/* -------------------------------------------------------- bottom nav (mobile) */
+
+.bottom-nav {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .app__body {
     grid-template-columns: 1fr;
@@ -326,7 +332,7 @@
     display: none;
     position: fixed;
     top: 52px;
-    bottom: 0;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
     left: 0;
     width: 230px;
     background: var(--bg-elevated);
@@ -340,5 +346,117 @@
 
   .topbar__menu {
     display: inline-block;
+  }
+
+  .content {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .topbar__user,
+  .topbar__role,
+  .topbar__logout {
+    display: none;
+  }
+
+  .topbar__live {
+    font-size: 0.72rem;
+  }
+
+  .brand {
+    font-size: 0.95rem;
+  }
+
+  .page-header--dashboard h1 {
+    font-size: 1.35rem;
+  }
+
+  .page-header__actions--stack {
+    width: 100%;
+  }
+
+  .input--search {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .card--flush-mobile .card__body {
+    padding: 0.85rem;
+    gap: 0.75rem;
+  }
+
+  .button--block-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .toaster {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    left: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .toast {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    justify-content: space-around;
+    gap: 0.25rem;
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    background: rgba(11, 18, 32, 0.96);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+  }
+
+  .bottom-nav__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 48px;
+    padding: 0.25rem 0.35rem;
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .bottom-nav__item--active {
+    color: var(--accent);
+    background: rgba(56, 189, 248, 0.1);
+  }
+
+  .bottom-nav__icon {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .tile__value {
+    font-size: 1.35rem;
+  }
+
+  .device-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -9,7 +9,7 @@ import { orderCapabilities } from '../../utils/capabilities';
  * moves the instant a sample arrives; the REST value still wins on page load
  * and for devices that are offline.
  */
-export function CapabilityWidget({ capability, latest, live }) {
+export function CapabilityWidget({ capability, latest, live, size = 'default' }) {
   const { reading, trend, time } = useMemo(() => {
     const points = [];
     for (const sample of live) {
@@ -27,20 +27,36 @@ export function CapabilityWidget({ capability, latest, live }) {
     };
   }, [capability, latest, live]);
 
-  return <StatTile capability={capability} reading={reading} trend={trend} time={time} />;
+  return <StatTile capability={capability} reading={reading} trend={trend} time={time} size={size} />;
 }
 
+const FEATURED = ['temperature', 'humidity'];
+
 /** Render a tile for every declared capability, in registry order. */
-export function CapabilityGrid({ capabilities = [], latest, live }) {
+export function CapabilityGrid({ capabilities = [], latest, live, showFeatured = true }) {
   const ordered = orderCapabilities(capabilities);
   if (ordered.length === 0) return null;
 
+  const featured = showFeatured ? FEATURED.filter((c) => ordered.includes(c)) : [];
+  const rest = ordered.filter((c) => !featured.includes(c));
+
   return (
-    <div className="tiles">
-      {ordered.map((capability) => (
-        <CapabilityWidget key={capability} capability={capability} latest={latest} live={live} />
-      ))}
-    </div>
+    <>
+      {featured.length > 0 && (
+        <div className="tiles tiles--hero">
+          {featured.map((capability) => (
+            <CapabilityWidget key={capability} capability={capability} latest={latest} live={live} size="hero" />
+          ))}
+        </div>
+      )}
+      {rest.length > 0 && (
+        <div className="tiles">
+          {rest.map((capability) => (
+            <CapabilityWidget key={capability} capability={capability} latest={latest} live={live} />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

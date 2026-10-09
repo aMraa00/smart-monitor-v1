@@ -44,6 +44,9 @@ void WifiLink::tick() {
   if (WiFi.status() == WL_CONNECTED) {
     if (connecting_) {
       connecting_ = false;
+      // Some phone hotspots ship broken DNS; public DNS avoids TLS/DNS failures to Render.
+      WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, IPAddress(8, 8, 8, 8),
+                  IPAddress(8, 8, 4, 4));
       Serial.print(F("[WIFI] connected, ip="));
       Serial.println(WiFi.localIP());
     }

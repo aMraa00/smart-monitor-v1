@@ -125,6 +125,18 @@ code {
   filter: brightness(1.08);
 }
 
+.button--secondary {
+  background: var(--bg-soft);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.button--secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .button--ghost {
   background: transparent;
 }

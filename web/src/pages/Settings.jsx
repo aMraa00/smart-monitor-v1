@@ -2,37 +2,113 @@ import Card from '../components/Card';
 import Badge from '../components/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { useDeviceStore } from '../stores/deviceStore';
+import { usePreferencesStore } from '../stores/preferencesStore';
+import { useI18n } from '../i18n/useI18n';
+import { requestAlertPermission } from '../hooks/useAlertNotifications';
+import { IconBell } from '../components/AppIcons';
 
-/** Accent per role, shared by the settings badge and the top bar. */
 const ROLE_TONE = { admin: 'info', manager: 'warn', owner: 'neutral', viewer: 'neutral' };
 
-/**
- * Account surface.
- *
- * Deliberately minimal in V1: the product has no profile editing endpoint, so
- * this page only reports what the server knows and offers session actions.
- */
 export function SettingsPage() {
+  const { t, locale, setLocale } = useI18n();
   const { user, logout } = useAuth();
   const resetDevices = useDeviceStore((s) => s.reset);
+  const theme = usePreferencesStore((s) => s.theme);
+  const setTheme = usePreferencesStore((s) => s.setTheme);
+  const alertsEnabled = usePreferencesStore((s) => s.alertsEnabled);
+  const setAlertsEnabled = usePreferencesStore((s) => s.setAlertsEnabled);
+
+  async function toggleAlerts(next) {
+    if (next) {
+      const perm = await requestAlertPermission();
+      if (perm !== 'granted') {
+        setAlertsEnabled(false);
+        return;
+      }
+    }
+    setAlertsEnabled(next);
+  }
 
   return (
     <>
       <header className="page-header">
         <div>
-          <h1>Settings</h1>
-          <p className="muted">Account and session</p>
+          <h1>{t('settings.title')}</h1>
+          <p className="muted">{t('settings.subtitle')}</p>
         </div>
       </header>
 
-      <Card title="Profile">
+      <Card title={t('settings.appearance')}>
+        <div className="settings-row">
+          <span>{t('settings.theme')}</span>
+          <div className="segmented">
+            <button
+              type="button"
+              className={`segmented__item ${theme === 'dark' ? 'segmented__item--active' : ''}`.trim()}
+              onClick={() => setTheme('dark')}
+            >
+              {t('settings.themeDark')}
+            </button>
+            <button
+              type="button"
+              className={`segmented__item ${theme === 'light' ? 'segmented__item--active' : ''}`.trim()}
+              onClick={() => setTheme('light')}
+            >
+              {t('settings.themeLight')}
+            </button>
+          </div>
+        </div>
+        <div className="settings-row">
+          <span>{t('settings.language')}</span>
+          <div className="segmented">
+            <button
+              type="button"
+              className={`segmented__item ${locale === 'mn' ? 'segmented__item--active' : ''}`.trim()}
+              onClick={() => setLocale('mn')}
+            >
+              {t('settings.langMn')}
+            </button>
+            <button
+              type="button"
+              className={`segmented__item ${locale === 'en' ? 'segmented__item--active' : ''}`.trim()}
+              onClick={() => setLocale('en')}
+            >
+              {t('settings.langEn')}
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      <Card title={t('settings.notifications')} subtitle={t('settings.alertsHint')}>
+        <label className="settings-toggle">
+          <span className="settings-toggle__label">
+            <span className="icon-badge" aria-hidden="true">
+              <IconBell width={18} height={18} />
+            </span>
+            {t('settings.alertsEnable')}
+          </span>
+          <input
+            type="checkbox"
+            checked={alertsEnabled}
+            onChange={(e) => toggleAlerts(e.target.checked)}
+          />
+        </label>
+        {typeof Notification !== 'undefined' && Notification.permission === 'denied' && (
+          <p className="form__error">{t('settings.alertsDenied')}</p>
+        )}
+        {alertsEnabled && Notification?.permission === 'granted' && (
+          <p className="form__success">{t('settings.alertsGranted')}</p>
+        )}
+      </Card>
+
+      <Card title={t('settings.profile')}>
         <dl className="detail-list">
           <div>
-            <dt>Name</dt>
+            <dt>{t('auth.name')}</dt>
             <dd>{user?.name || '—'}</dd>
           </div>
           <div>
-            <dt>Email</dt>
+            <dt>{t('auth.email')}</dt>
             <dd>{user?.email || '—'}</dd>
           </div>
           <div>
@@ -44,7 +120,7 @@ export function SettingsPage() {
         </dl>
       </Card>
 
-      <Card title="Session" subtitle="Signing out invalidates the refresh token on the server too.">
+      <Card title={t('settings.session')} subtitle={t('settings.sessionHint')}>
         <button
           type="button"
           className="button button--danger"
@@ -54,7 +130,7 @@ export function SettingsPage() {
             window.location.assign('/login');
           }}
         >
-          Sign out everywhere
+          {t('common.signOutEverywhere')}
         </button>
       </Card>
     </>

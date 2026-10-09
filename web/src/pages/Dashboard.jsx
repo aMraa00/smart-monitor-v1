@@ -10,19 +10,15 @@ import { useUiStore } from '../stores/uiStore';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { addRealtimeListener, subscribeDevice } from '../hooks/useSocket';
 import { useDebounce } from '../hooks/useDebounce';
+import { useI18n } from '../i18n/useI18n';
 import { describeCapability } from '../utils/capabilities';
 import { formatRelative, isOnline } from '../utils/formatters';
 
-/** How fresh "live" is before the UI admits the stream went quiet. */
 const STALE_AFTER_MS = 45_000;
-
 const TIME_TONE = { ntp: 'ok', synced: 'warn', estimated: 'danger' };
 
-/**
- * Landing page: fleet health at a glance plus the live readings of the
- * currently selected station.
- */
 export function DashboardPage() {
+  const { t } = useI18n();
   const { devices, loading, load } = useDeviceStore();
   const toast = useUiStore((s) => s.toast);
   const socketState = useUiStore((s) => s.socketState);
@@ -32,9 +28,7 @@ export function DashboardPage() {
   const debouncedFilter = useDebounce(filter.trim().toLowerCase(), 200);
 
   useEffect(() => {
-    if (devices.length === 0) {
-      load().catch(() => {});
-    }
+    if (devices.length === 0) load().catch(() => {});
   }, [devices.length, load]);
 
   useEffect(() => {
@@ -72,10 +66,10 @@ export function DashboardPage() {
       if (seen.has(key)) return;
       seen.add(key);
       const label = describeCapability(payload.capability).label;
-      toast(`Alert: ${label} ${payload.value} (${payload.severity})`, 'danger', 8000);
+      toast(t('alert.body', { label, value: payload.value, severity: payload.severity }), 'danger', 8000);
     });
     return off;
-  }, [toast]);
+  }, [toast, t]);
 
   const onlineCount = devices.filter((d) => isOnline(d.lastSeenAt)).length;
 
@@ -85,17 +79,17 @@ export function DashboardPage() {
   const streamStale = Number.isFinite(streamAgeMs) && streamAgeMs > STALE_AFTER_MS;
   const deviceOnline = selected ? isOnline(selected.lastSeenAt) : false;
 
-  if (loading && devices.length === 0) return <LoadingBlock label="Loading dashboard" />;
+  if (loading && devices.length === 0) return <LoadingBlock label={t('common.loading')} />;
 
   if (devices.length === 0) {
     return (
       <EmptyState
         icon="🏁"
-        title="Welcome to Smart Monitor"
-        hint="Claim your first station to see live air quality and weather readings here."
+        title={t('dashboard.welcome')}
+        hint={t('dashboard.welcomeHint')}
         action={
           <Link className="button button--primary" to="/devices">
-            Claim a device
+            {t('dashboard.claimDevice')}
           </Link>
         }
       />
@@ -108,25 +102,26 @@ export function DashboardPage() {
     <>
       <header className="page-header page-header--dashboard">
         <div>
-          <h1>Live</h1>
+          <h1>{t('dashboard.title')}</h1>
           <p className="muted page-header__lede">
-            {onlineCount}/{devices.length} stations reporting · ~{sampleIntervalS}s refresh
+            {t('dashboard.reporting', { online: onlineCount, total: devices.length })} ·{' '}
+            {t('dashboard.refreshHint', { sec: sampleIntervalS })}
           </p>
         </div>
         <div className="page-header__actions page-header__actions--stack">
           <input
             className="input input--search"
             type="search"
-            placeholder="Search stations…"
+            placeholder={t('dashboard.searchStations')}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            aria-label="Search stations"
+            aria-label={t('dashboard.searchStations')}
           />
         </div>
       </header>
 
       {filtered.length > 1 && (
-        <div className="device-chips" role="tablist" aria-label="Select station">
+        <div className="device-chips" role="tablist" aria-label="Stations">
           {filtered.map((device) => {
             const active = device.deviceId === selectedId;
             const online = isOnline(device.lastSeenAt);
@@ -150,21 +145,21 @@ export function DashboardPage() {
       {selected && (
         <section className="live-hero" aria-live="polite">
           <div className="live-hero__main">
-            <p className="live-hero__eyebrow">{selected.locationName || 'My station'}</p>
+            <p className="live-hero__eyebrow">{selected.locationName || t('dashboard.myStation')}</p>
             <h2 className="live-hero__title">{displayName}</h2>
             <p className="live-hero__meta muted">
-              Last seen {formatRelative(selected.lastSeenAt)}
-              {latest?.ts ? ` · sample ${formatRelative(latest.ts)}` : ''}
+              {t('dashboard.lastSeen')} {formatRelative(selected.lastSeenAt)}
+              {latest?.ts ? ` · ${t('dashboard.sample')} ${formatRelative(latest.ts)}` : ''}
             </p>
           </div>
           <div className="live-hero__badges">
-            <Badge tone={deviceOnline ? 'ok' : 'warn'}>{deviceOnline ? 'online' : 'offline'}</Badge>
+            <Badge tone={deviceOnline ? 'ok' : 'warn'}>{deviceOnline ? t('common.online') : t('common.offline')}</Badge>
             <Badge tone={socketState === 'online' ? 'ok' : socketState === 'connecting' ? 'warn' : 'danger'}>
-              {socketState === 'online' ? 'socket live' : socketState}
+              {socketState === 'online' ? t('dashboard.socketLive') : socketState}
             </Badge>
             {latest && (
               <Badge tone={streamFresh ? 'ok' : streamStale ? 'warn' : 'neutral'}>
-                {streamFresh ? 'streaming' : streamStale ? 'quiet' : 'waiting'}
+                {streamFresh ? t('dashboard.streaming') : streamStale ? t('dashboard.quiet') : t('dashboard.waiting')}
               </Badge>
             )}
           </div>
@@ -174,27 +169,23 @@ export function DashboardPage() {
       {selected && (
         <Card className="card--flush-mobile">
           {telemetryLoading && live.length === 0 ? (
-            <LoadingBlock label="Loading readings" />
+            <LoadingBlock label={t('dashboard.loadingReadings')} />
           ) : latest ? (
             <>
               <CapabilityGrid capabilities={selected.capabilities} latest={latest} live={live} />
               <div className="sample-meta">
                 <span>
-                  Time quality{' '}
+                  {t('dashboard.timeQuality')}{' '}
                   <Badge tone={TIME_TONE[latest.timeQuality] || 'neutral'}>{latest.timeQuality || 'unknown'}</Badge>
                 </span>
-                <span className="muted">New sample about every {sampleIntervalS}s</span>
+                <span className="muted">{t('dashboard.newSampleEvery', { sec: sampleIntervalS })}</span>
               </div>
             </>
           ) : (
-            <EmptyState
-              icon="⏳"
-              title="Waiting for first sample"
-              hint="Check Wi‑Fi on the station. The dashboard updates automatically when data arrives."
-            />
+            <EmptyState icon="⏳" title={t('dashboard.noTelemetry')} hint={t('dashboard.noTelemetryHint')} />
           )}
           <Link className="button button--secondary button--block-mobile" to={`/devices/${selected.deviceId}`}>
-            Charts &amp; settings
+            {t('dashboard.chartsSettings')}
           </Link>
         </Card>
       )}

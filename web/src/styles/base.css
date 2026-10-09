@@ -1,16 +1,6 @@
+/* Color tokens live in theme.css (data-theme). */
 :root {
-  --bg: #0b1220;
-  --bg-elevated: #111a2c;
-  --bg-soft: #16213a;
-  --border: #24314d;
-  --text: #e6edf7;
-  --text-muted: #94a3b8;
-  --accent: #38bdf8;
-  --ok: #22c55e;
-  --warn: #f59e0b;
-  --danger: #ef4444;
-  --radius: 12px;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --radius: 14px;
   --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 }

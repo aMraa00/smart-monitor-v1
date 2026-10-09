@@ -3,24 +3,22 @@ import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
 import { useDeviceStore } from '../stores/deviceStore';
 import { useUiStore } from '../stores/uiStore';
+import { usePreferencesStore } from '../stores/preferencesStore';
+import { useI18n } from '../i18n/useI18n';
+import { useAlertNotifications } from '../hooks/useAlertNotifications';
 import Toaster from '../components/Toaster';
 import MobileBottomNav from '../components/MobileBottomNav';
+import InstallPrompt from '../components/InstallPrompt';
+import { IconLogo, IconMoon, IconSun, NavIcon } from '../components/AppIcons';
 
-/**
- * Sidebar entries, filtered by role.
- *
- * Filtering is a UX convenience only - App.jsx guards the matching routes and
- * the API re-checks every request, so hiding a link is never the security
- * control (prompt §42).
- */
 const ALL_ROLES = ['admin', 'manager', 'owner', 'viewer'];
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: '📊', roles: ALL_ROLES },
-  { to: '/devices', label: 'Devices', icon: '📡', roles: ALL_ROLES },
-  { to: '/guide', label: 'Setup guide', icon: '📖', roles: ALL_ROLES },
-  { to: '/users', label: 'Users', icon: '👥', roles: ['admin'] },
-  { to: '/settings', label: 'Settings', icon: '⚙️', roles: ALL_ROLES },
+  { to: '/', labelKey: 'nav.dashboard', icon: 'dashboard', roles: ALL_ROLES, end: true },
+  { to: '/devices', labelKey: 'nav.devices', icon: 'devices', roles: ALL_ROLES },
+  { to: '/guide', labelKey: 'nav.guide', icon: 'guide', roles: ALL_ROLES },
+  { to: '/users', labelKey: 'nav.users', icon: 'settings', roles: ['admin'] },
+  { to: '/settings', labelKey: 'nav.settings', icon: 'settings', roles: ALL_ROLES },
 ];
 
 const SOCKET_TONE = {
@@ -30,22 +28,20 @@ const SOCKET_TONE = {
   neutral: 'neutral',
 };
 
-/**
- * Authenticated shell: navigation, connection badge, toasts, <Outlet/>.
- *
- * This is also the component that owns the realtime socket, so it is mounted
- * exactly once per session and unmounting it tears the connection down.
- */
 export function AppLayout() {
+  const { t } = useI18n();
   const { user, logout } = useAuth();
   const socketState = useSocket();
   const navigate = useNavigate();
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const setSidebar = useUiStore((s) => s.setSidebar);
   const resetDevices = useDeviceStore((s) => s.reset);
+  const theme = usePreferencesStore((s) => s.theme);
+  const toggleTheme = usePreferencesStore((s) => s.toggleTheme);
+  const alertsEnabled = usePreferencesStore((s) => s.alertsEnabled);
 
-  // A signed-in user always has a role; treat a missing one as "no access"
-  // rather than showing everything.
+  useAlertNotifications(alertsEnabled);
+
   const visibleNav = NAV.filter((item) => item.roles.includes(user?.role));
 
   async function handleLogout() {
@@ -57,27 +53,28 @@ export function AppLayout() {
   return (
     <div className="app">
       <header className="topbar">
-        <button type="button" className="icon-button topbar__menu" onClick={() => setSidebar(!sidebarOpen)} aria-label="Toggle navigation">
+        <button type="button" className="icon-button topbar__menu" onClick={() => setSidebar(!sidebarOpen)} aria-label="Menu">
           ☰
         </button>
 
         <NavLink to="/" className="brand">
-          <span className="brand__mark" aria-hidden="true">
-            ◈
-          </span>
-          Smart Monitor
+          <IconLogo />
+          {t('app.name')}
         </NavLink>
 
         <div className="topbar__right">
-          <span className={`badge badge--${SOCKET_TONE[socketState] || 'neutral'} topbar__live`} title="Realtime connection">
-            {socketState === 'online' ? 'live' : socketState}
+          <button type="button" className="icon-button icon-badge topbar__theme" onClick={toggleTheme} aria-label={t('settings.theme')}>
+            {theme === 'dark' ? <IconSun width={18} height={18} /> : <IconMoon width={18} height={18} />}
+          </button>
+          <span className={`badge badge--${SOCKET_TONE[socketState] || 'neutral'} topbar__live`} title="Realtime">
+            {socketState === 'online' ? t('common.live') : socketState}
           </span>
           <span className="topbar__user" title={user?.email}>
             {user?.name || user?.email || 'Account'}
           </span>
           {user?.role && <span className="badge badge--info topbar__role">{user.role}</span>}
           <button type="button" className="button button--ghost topbar__logout" onClick={handleLogout}>
-            Sign out
+            {t('common.signOut')}
           </button>
         </div>
       </header>
@@ -88,12 +85,12 @@ export function AppLayout() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
+              end={item.end}
               className={({ isActive }) => `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`.trim()}
               onClick={() => setSidebar(false)}
             >
-              <span aria-hidden="true">{item.icon}</span>
-              {item.label}
+              <NavIcon name={item.icon} width={20} height={20} />
+              {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
@@ -104,6 +101,7 @@ export function AppLayout() {
       </div>
 
       <MobileBottomNav />
+      <InstallPrompt />
       <Toaster />
     </div>
   );

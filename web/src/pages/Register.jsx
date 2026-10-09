@@ -1,8 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import AuthForm from '../features/auth/AuthForm';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../i18n/useI18n';
+import { IconLogo } from '../components/AppIcons';
 
 export function RegisterPage() {
+  const { t } = useI18n();
   const { register, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -15,16 +18,16 @@ export function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-card__brand">
-          <span aria-hidden="true">◈</span>
-          <h1>Smart Monitor</h1>
-          <p>Claim your first station in under a minute</p>
+          <IconLogo width={40} height={40} />
+          <h1>{t('app.name')}</h1>
+          <p>{t('auth.registerTagline')}</p>
         </div>
 
-        <h2 className="auth-card__title">Create account</h2>
+        <h2 className="auth-card__title">{t('auth.signUp')}</h2>
         <AuthForm mode="register" onSubmit={handleSubmit} loading={loading} />
 
         <p className="auth-card__switch">
-          Already registered? <Link to="/login">Sign in</Link>
+          {t('auth.hasAccount')} <Link to="/login">{t('auth.signIn')}</Link>
         </p>
       </div>
     </div>

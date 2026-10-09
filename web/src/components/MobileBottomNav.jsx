@@ -1,18 +1,20 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../i18n/useI18n';
+import { NavIcon } from './AppIcons';
 
 const ALL_ROLES = ['admin', 'manager', 'owner', 'viewer'];
 
 const TABS = [
-  { to: '/', label: 'Home', icon: '📊', end: true, roles: ALL_ROLES },
-  { to: '/devices', label: 'Devices', icon: '📡', roles: ALL_ROLES },
-  { to: '/guide', label: 'Guide', icon: '📖', roles: ALL_ROLES },
-  { to: '/settings', label: 'Settings', icon: '⚙️', roles: ALL_ROLES },
+  { to: '/', labelKey: 'nav.dashboard', icon: 'dashboard', end: true, roles: ALL_ROLES },
+  { to: '/devices', labelKey: 'nav.devices', icon: 'devices', roles: ALL_ROLES },
+  { to: '/guide', labelKey: 'nav.guide', icon: 'guide', roles: ALL_ROLES },
+  { to: '/settings', labelKey: 'nav.settings', icon: 'settings', roles: ALL_ROLES },
 ];
 
-/** Thumb-friendly nav fixed to the bottom on narrow viewports. */
 export function MobileBottomNav() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const items = TABS.filter((item) => item.roles.includes(user?.role));
 
   return (
@@ -24,10 +26,10 @@ export function MobileBottomNav() {
           end={item.end}
           className={({ isActive }) => `bottom-nav__item ${isActive ? 'bottom-nav__item--active' : ''}`.trim()}
         >
-          <span className="bottom-nav__icon" aria-hidden="true">
-            {item.icon}
+          <span className="bottom-nav__icon-wrap">
+            <NavIcon name={item.icon} width={20} height={20} />
           </span>
-          <span className="bottom-nav__label">{item.label}</span>
+          <span className="bottom-nav__label">{t(item.labelKey)}</span>
         </NavLink>
       ))}
     </nav>

@@ -2,7 +2,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
+import './stores/preferencesStore';
+import './styles/theme.css';
 import './styles/base.css';
+import './styles/glass.css';
 import './styles/layout.css';
 import './styles/widgets.css';
 import './styles/data.css';

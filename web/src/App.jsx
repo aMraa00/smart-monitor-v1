@@ -11,13 +11,15 @@ import UsersPage from './pages/Users';
 import GuidePage from './pages/Guide';
 import EmptyState from './components/EmptyState';
 import { Spinner } from './components/Spinner';
+import { useI18n } from './i18n/useI18n';
 
 /** Full-screen loader used while the session is being restored. */
 function BootSplash() {
+  const { t } = useI18n();
   return (
     <div className="boot">
       <Spinner size={28} />
-      <span>Restoring session…</span>
+      <span>{t('common.restoreSession')}</span>
     </div>
   );
 }
@@ -48,14 +50,15 @@ function RequireAuth({ children }) {
  */
 function RequireRole({ roles, children }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   if (!user) return null;
   if (roles.includes(user.role)) return children;
 
   return (
     <EmptyState
       icon="🔒"
-      title="Admins only"
-      hint={`Your role is "${user.role}". Ask an administrator to change it if you need this page.`}
+      title={t('common.adminOnly')}
+      hint={t('common.adminOnlyHint', { role: user.role })}
     />
   );
 }

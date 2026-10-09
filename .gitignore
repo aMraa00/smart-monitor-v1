@@ -1,0 +1,48 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# builds
+dist/
+build/
+out/
+.pio/
+*.bin
+*.elf
+*.map
+
+# local environment - NEVER commit real secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+!*.env.example
+
+# logs
+*.log
+npm-debug.log*
+socket-out.txt
+logs/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# local ESP32 simulator identity (device secret — like NVS)
+scripts/.esp32-sim.json
+
+# test + tooling artifacts
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# local databases
+data/
+
+# platformio project template inside firmware/ (redundant: root rules above
+# already ignore .pio/, build artifacts and editor files)
+firmware/smart_monitor_v1/.gitignore
+

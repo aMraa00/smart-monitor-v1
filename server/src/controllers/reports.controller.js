@@ -41,10 +41,25 @@ const downloadTelemetryCsv = asyncHandler(async (req, res) => {
   return res.send(csv);
 });
 
+const downloadTelemetryWorkbook = asyncHandler(async (req, res) => {
+  const buffer = await reportsService.exportTelemetryWorkbook(req.user, req.query);
+  const slug = req.query.deviceId ? String(req.query.deviceId).replace(/[^\w-]+/g, '') : 'all';
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="Smart_Monitor_Telemetry_Dashboard-${slug}.xlsx"`
+  );
+  return res.send(Buffer.from(buffer));
+});
+
 module.exports = {
   getSummary,
   getDevices,
   downloadDevicesCsv,
   downloadTelemetryCsv,
+  downloadTelemetryWorkbook,
   downloadUsersCsv,
 };

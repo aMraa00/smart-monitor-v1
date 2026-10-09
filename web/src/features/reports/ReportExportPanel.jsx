@@ -54,7 +54,7 @@ export function ReportExportPanel({ showNote = true }) {
   async function handleDownload() {
     setDownloading(true);
     try {
-      await downloadReportCsv('telemetry', exportQuery);
+      await downloadReportCsv('telemetryWorkbook', exportQuery);
       toast(t('reports.downloadOk'), 'ok');
     } catch (err) {
       toast(apiError(err), 'danger');

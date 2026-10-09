@@ -14,11 +14,12 @@ const CSV_PATHS = {
   devices: '/reports/export/devices.csv',
   users: '/reports/export/users.csv',
   telemetry: '/reports/export/telemetry.csv',
+  telemetryWorkbook: '/reports/export/telemetry.xlsx',
 };
 
 /** Trigger CSV download in the browser (uses Bearer token). */
 export async function downloadReportCsv(kind, query = {}) {
-  const path = CSV_PATHS[kind] || CSV_PATHS.devices;
+  const path = CSV_PATHS[kind] || CSV_PATHS.telemetryWorkbook;
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
@@ -44,7 +45,9 @@ export async function downloadReportCsv(kind, query = {}) {
       ? 'smart-monitor-users.csv'
       : kind === 'telemetry'
         ? 'smart-monitor-telemetry.csv'
-        : 'smart-monitor-devices.csv';
+        : kind === 'telemetryWorkbook'
+          ? 'Smart_Monitor_Telemetry_Dashboard.xlsx'
+          : 'smart-monitor-devices.csv';
   const cd = response.headers.get('Content-Disposition') || '';
   const match = /filename="([^"]+)"/i.exec(cd);
   const filename = match ? match[1] : fallback;

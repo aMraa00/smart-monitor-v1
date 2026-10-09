@@ -180,9 +180,9 @@ export const translations = {
       deviceAll: 'Бүх станц (эрхийн дагуу)',
       fromDate: 'Эхлэх өдөр',
       toDate: 'Дуусах өдөр',
-      downloadTelemetry: 'Мэдрэгчийн CSV татах',
+      downloadTelemetry: 'Excel тайлан татах',
       telemetryNote:
-        'Мөр бүр: станц, цаг, мэдрэгч, утга, нэгж. Admin/manager — бүх станц; эзэмшигч — зөвхөн өөрийн станц. Нэг файлд 10 000 sample хүртэл.',
+        'Smart Monitor Telemetry Dashboard (.xlsx): «Хяналт самбар», «Хэмжилтүүд», «Эх өгөгдөл» хүснэгт. Admin/manager — бүх станц; эзэмшигч — зөвхөн өөрийн станц. 10 000 sample хүртэл.',
       exportTitle: 'Нэмэлт export',
       exportHint: 'Станцын жагсаалт (admin: хэрэглэгчийн жагсаалт)',
       downloadDevices: 'Станцын жагсаалт CSV',
@@ -607,9 +607,9 @@ export const translations = {
       deviceAll: 'All stations (within your access)',
       fromDate: 'From',
       toDate: 'To',
-      downloadTelemetry: 'Download sensor CSV',
+      downloadTelemetry: 'Download Excel report',
       telemetryNote:
-        'Each row: station, time, sensor, value, unit. Admin/manager: all stations; owners: own stations only. Up to 10,000 samples per file.',
+        'Smart Monitor Telemetry Dashboard (.xlsx): dashboard charts, measurements table, and raw data sheet. Up to 10,000 samples per export.',
       exportTitle: 'Other exports',
       exportHint: 'Station inventory (admins: account list)',
       downloadDevices: 'Station list CSV',

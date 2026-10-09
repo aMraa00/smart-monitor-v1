@@ -19,6 +19,11 @@ router.get(
   validate({ query: telemetryExportQuerySchema }),
   controller.downloadTelemetryCsv
 );
+router.get(
+  '/export/telemetry.xlsx',
+  validate({ query: telemetryExportQuerySchema }),
+  controller.downloadTelemetryWorkbook
+);
 router.get('/export/users.csv', controller.downloadUsersCsv);
 
 module.exports = router;

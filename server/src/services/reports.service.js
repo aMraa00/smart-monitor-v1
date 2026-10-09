@@ -3,6 +3,7 @@
 const { Device, User, TelemetryLatest, Telemetry } = require('../models');
 const ApiError = require('../utils/apiError');
 const { isPrivileged } = require('../utils/roles');
+const { buildTelemetryWorkbook } = require('./telemetryWorkbook.service');
 
 const DEFAULT_RANGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_EXPORT_SAMPLES = 50000;
@@ -114,30 +115,11 @@ async function resolveTelemetryDeviceScope(user, deviceId) {
   return { devices, deviceMap };
 }
 
-/**
- * Long-format CSV: one row per sensor reading (device, time, capability, value…).
- */
-async function exportTelemetryCsv(user, { deviceId, from: fromRaw, to: toRaw, limit = 10000 }) {
+async function loadTelemetrySamples(user, { deviceId, from: fromRaw, to: toRaw, limit = 10000 }) {
   const { from, to } = parseExportRange(fromRaw, toRaw);
   const maxSamples = Math.min(Math.max(Number(limit) || 10000, 1), MAX_EXPORT_SAMPLES);
   const { devices, deviceMap } = await resolveTelemetryDeviceScope(user, deviceId);
-  if (devices.length === 0) {
-    return toCsv(
-      [
-        { header: 'deviceId', value: () => '' },
-        { header: 'displayName', value: () => '' },
-        { header: 'locationName', value: () => '' },
-        { header: 'ts', value: () => '' },
-        { header: 'sampleId', value: () => '' },
-        { header: 'timeQuality', value: () => '' },
-        { header: 'capability', value: () => '' },
-        { header: 'value', value: () => '' },
-        { header: 'unit', value: () => '' },
-        { header: 'quality', value: () => '' },
-      ],
-      []
-    );
-  }
+  if (devices.length === 0) return { docs: [], deviceMap, from, to };
 
   const deviceIds = devices.map((d) => d._id);
   const docs = await Telemetry.find({
@@ -148,6 +130,10 @@ async function exportTelemetryCsv(user, { deviceId, from: fromRaw, to: toRaw, li
     .limit(maxSamples)
     .lean();
 
+  return { docs, deviceMap, from, to };
+}
+
+function longRowsFromDocs(docs, deviceMap) {
   const rows = [];
   for (const doc of docs) {
     const meta = deviceMap.get(String(doc.device));
@@ -169,7 +155,15 @@ async function exportTelemetryCsv(user, { deviceId, from: fromRaw, to: toRaw, li
       });
     }
   }
+  return rows;
+}
 
+/**
+ * Long-format CSV: one row per sensor reading (device, time, capability, value…).
+ */
+async function exportTelemetryCsv(user, params) {
+  const { docs, deviceMap } = await loadTelemetrySamples(user, params);
+  const rows = longRowsFromDocs(docs, deviceMap);
   const columns = [
     { header: 'deviceId', value: (r) => r.deviceId },
     { header: 'displayName', value: (r) => r.displayName },
@@ -183,6 +177,12 @@ async function exportTelemetryCsv(user, { deviceId, from: fromRaw, to: toRaw, li
     { header: 'quality', value: (r) => r.quality },
   ];
   return toCsv(columns, rows);
+}
+
+/** Dashboard-style Excel (ХЯНАХ САМБАР + ХЭМЖИЛТҮҮД + ЭХ ӨГӨГДӨЛ). */
+async function exportTelemetryWorkbook(user, params) {
+  const { docs, deviceMap } = await loadTelemetrySamples(user, params);
+  return buildTelemetryWorkbook(docs, deviceMap);
 }
 
 async function exportUsersCsv() {
@@ -220,6 +220,7 @@ module.exports = {
   listDevicesForReport,
   exportDevicesCsv,
   exportTelemetryCsv,
+  exportTelemetryWorkbook,
   exportUsersCsv,
   resolveTelemetryDeviceScope,
 };

@@ -6,9 +6,11 @@ import { LoadingBlock } from '../components/Spinner';
 import { useDeviceStore } from '../stores/deviceStore';
 import { useUiStore } from '../stores/uiStore';
 import { useDebounce } from '../hooks/useDebounce';
+import { useI18n } from '../i18n/useI18n';
 
 /** Device inventory: search, claim, open. */
 export function DevicesPage() {
+  const { t } = useI18n();
   const { devices, loading, error, load, claim } = useDeviceStore();
   const toast = useUiStore((s) => s.toast);
   const [query, setQuery] = useState('');
@@ -34,7 +36,7 @@ export function DevicesPage() {
     setClaiming(true);
     try {
       const device = await claim(deviceId, claimCode);
-      toast(`Claimed ${device.displayName || device.deviceId}`, 'ok');
+      toast(t('devices.claimSuccess', { name: device.displayName || device.deviceId }), 'ok');
     } finally {
       setClaiming(false);
     }
@@ -44,9 +46,9 @@ export function DevicesPage() {
     <>
       <header className="page-header">
         <div>
-          <h1>Devices</h1>
+          <h1>{t('devices.title')}</h1>
           <p className="muted">
-            {devices.length} station{devices.length === 1 ? '' : 's'} owned
+            {devices.length === 1 ? t('devices.ownedOne') : t('devices.ownedMany', { count: devices.length })}
           </p>
         </div>
 
@@ -54,33 +56,29 @@ export function DevicesPage() {
           <input
             className="input"
             type="search"
-            placeholder="Search name, id, location…"
+            placeholder={t('devices.searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search devices"
+            aria-label={t('devices.searchAria')}
           />
           <button type="button" className="button button--primary" onClick={() => setClaimOpen(true)}>
-            Claim device
+            {t('devices.claim')}
           </button>
         </div>
       </header>
 
       {error && <p className="form__error">{error}</p>}
       {loading && devices.length === 0 ? (
-        <LoadingBlock label="Loading devices" />
+        <LoadingBlock label={t('devices.loading')} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon="📡"
-          title={devices.length === 0 ? 'No devices claimed yet' : 'Nothing matches that search'}
-          hint={
-            devices.length === 0
-              ? 'Boot a station, open its SoftAP portal, then claim it with the code it shows.'
-              : 'Try the device id or a location instead.'
-          }
+          title={devices.length === 0 ? t('devices.emptyNoneTitle') : t('devices.emptySearchTitle')}
+          hint={devices.length === 0 ? t('devices.emptyNoneHint') : t('devices.emptySearchHint')}
           action={
             devices.length === 0 ? (
               <button type="button" className="button button--primary" onClick={() => setClaimOpen(true)}>
-                Claim device
+                {t('devices.claim')}
               </button>
             ) : null
           }

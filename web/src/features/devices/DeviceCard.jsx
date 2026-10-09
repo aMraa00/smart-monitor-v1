@@ -32,7 +32,7 @@ export function DeviceCard({ device }) {
       </header>
 
       <p className="device-card__meta">
-        {device.locationName || 'No location'} · last seen {formatRelative(device.lastSeenAt)}
+        {device.locationName || t('devices.noLocation')} · {t('devices.lastSeen')} {formatRelative(device.lastSeenAt)}
       </p>
 
       <ul className="device-card__caps">
@@ -46,7 +46,7 @@ export function DeviceCard({ device }) {
           );
         })}
         {hidden > 0 && <li className="device-card__more">+{hidden}</li>}
-        {capabilities.length === 0 && <li className="device-card__more">no capabilities declared</li>}
+        {capabilities.length === 0 && <li className="device-card__more">{t('devices.noCapabilities')}</li>}
       </ul>
 
       <footer className="device-card__foot">

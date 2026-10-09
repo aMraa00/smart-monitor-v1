@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal';
+import { useI18n } from '../../i18n/useI18n';
 
 /**
  * Claim an unowned device with the code shown on the device display.
@@ -8,6 +9,7 @@ import Modal from '../../components/Modal';
  * this dialog only collects the two values and surfaces the API error verbatim.
  */
 export function ClaimDeviceModal({ open, onClose, onClaim, loading }) {
+  const { t } = useI18n();
   const [deviceId, setDeviceId] = useState('');
   const [claimCode, setClaimCode] = useState('');
   const [error, setError] = useState('');
@@ -21,16 +23,14 @@ export function ClaimDeviceModal({ open, onClose, onClaim, loading }) {
       setClaimCode('');
       onClose();
     } catch (err) {
-      setError(err.message || 'Claim failed');
+      setError(err.message || t('devices.claimFailed'));
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Claim a device">
+    <Modal open={open} onClose={onClose} title={t('devices.claimModalTitle')}>
       <form className="form" onSubmit={submit}>
-        <p className="form__hint">
-          Find the claim code on the device screen (or serial output) after it boots. It expires in a few minutes.
-        </p>
+        <p className="form__hint">{t('devices.claimHint')}</p>
 
         {error && (
           <p className="form__error" role="alert">
@@ -39,7 +39,7 @@ export function ClaimDeviceModal({ open, onClose, onClaim, loading }) {
         )}
 
         <label className="field">
-          <span>Device ID</span>
+          <span>{t('devices.deviceId')}</span>
           <input
             value={deviceId}
             onChange={(e) => setDeviceId(e.target.value)}
@@ -49,12 +49,12 @@ export function ClaimDeviceModal({ open, onClose, onClaim, loading }) {
         </label>
 
         <label className="field">
-          <span>Claim code</span>
+          <span>{t('devices.claimCode')}</span>
           <input value={claimCode} onChange={(e) => setClaimCode(e.target.value)} placeholder="ABC123" required />
         </label>
 
         <button type="submit" className="button button--primary button--block" disabled={loading}>
-          {loading ? 'Claiming…' : 'Claim device'}
+          {loading ? t('devices.claiming') : t('devices.claim')}
         </button>
       </form>
     </Modal>

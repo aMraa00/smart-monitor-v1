@@ -23,6 +23,7 @@ const createUserSchema = z.object({
   password,
   name: z.string().trim().max(120).optional().default(''),
   role: z.enum(['admin', 'manager', 'owner', 'viewer']).optional().default('owner'),
+  canAccessReports: z.boolean().optional().default(false),
 });
 
 const listUsersQuerySchema = z.object({
@@ -40,6 +41,9 @@ const updateUserSchema = z
     name: z.string().trim().max(120).optional(),
     role: z.enum(['admin', 'manager', 'owner', 'viewer']).optional(),
     password: password.optional(),
+    canAccessReports: z.boolean().optional(),
+    extendReportsMonths: z.coerce.number().int().min(1).max(36).optional(),
+    revokeReportsAccess: z.boolean().optional(),
   })
   .refine((body) => Object.keys(body).length > 0, { message: 'at least one field is required' });
 

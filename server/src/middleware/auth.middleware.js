@@ -32,7 +32,7 @@ async function authenticate(req, _res, next) {
     if (!token) throw ApiError.unauthorized('AUTH_REQUIRED', 'Authentication required');
 
     const payload = verifyAccessToken(token);
-    const user = await User.findById(payload.sub).select('_id email role name');
+    const user = await User.findById(payload.sub).select('_id email role name canAccessReports reportsAccessUntil');
     if (!user) throw ApiError.unauthorized('AUTH_USER_MISSING', 'Account no longer exists');
 
     req.user = user;

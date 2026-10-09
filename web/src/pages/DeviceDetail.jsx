@@ -198,6 +198,25 @@ export function DeviceDetailPage() {
         </div>
       </header>
 
+      {device.ownerProfile && (
+        <Card title={t('deviceDetail.ownerTitle')} subtitle={t('deviceDetail.ownerSubtitle')}>
+          <dl className="detail-list">
+            <div>
+              <dt>{t('users.email')}</dt>
+              <dd>{device.ownerProfile.email}</dd>
+            </div>
+            <div>
+              <dt>{t('users.name')}</dt>
+              <dd>{device.ownerProfile.name || '—'}</dd>
+            </div>
+            <div>
+              <dt>{t('users.role')}</dt>
+              <dd>{device.ownerProfile.role}</dd>
+            </div>
+          </dl>
+        </Card>
+      )}
+
       <Card title={t('deviceDetail.liveTitle')} subtitle={t('deviceDetail.liveSubtitle')}>
         {telemetryLoading && live.length === 0 ? (
           <LoadingBlock label={t('deviceDetail.loadingReadings')} />

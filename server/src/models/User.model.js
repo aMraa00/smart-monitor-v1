@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true, select: false },
     name: { type: String, trim: true, maxlength: 120, default: '' },
     role: { type: String, enum: ROLES, default: 'owner', required: true },
+    /** Legacy flag; active access is determined by `reportsAccessUntil`. */
+    canAccessReports: { type: Boolean, default: false },
+    /** Monthly report/export entitlement — valid while date is in the future. */
+    reportsAccessUntil: { type: Date, default: null, index: true },
     lastLoginAt: { type: Date, default: null },
     failedLoginAttempts: { type: Number, default: 0, select: false },
     lockedUntil: { type: Date, default: null, select: false },
@@ -53,6 +57,8 @@ userSchema.methods.toPublicJSON = function toPublicJSON() {
     email: this.email,
     name: this.name,
     role: this.role,
+    canAccessReports: Boolean(this.canAccessReports),
+    reportsAccessUntil: this.reportsAccessUntil ? this.reportsAccessUntil.toISOString() : null,
     createdAt: this.createdAt,
   };
 };

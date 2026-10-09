@@ -38,10 +38,20 @@ function canDestroyDevice(user) {
   return Boolean(user) && DESTRUCTIVE_ROLES.includes(user.role);
 }
 
+const { isReportsAccessActive } = require('./reportsAccess');
+
+/** True when the account may open report endpoints (admin or unexpired grant). */
+function canAccessReports(user) {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return isReportsAccessActive(user);
+}
+
 module.exports = {
   PRIVILEGED_ROLES,
   DESTRUCTIVE_ROLES,
   isPrivileged,
   isAdmin,
   canDestroyDevice,
+  canAccessReports,
 };

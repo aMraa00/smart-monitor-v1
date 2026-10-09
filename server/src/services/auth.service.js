@@ -12,6 +12,7 @@
 const { User, Device, ROLES } = require('../models');
 const ApiError = require('../utils/apiError');
 const tokenService = require('./token.service');
+const { extendReportsUntil, revokeReportsAccess } = require('../utils/reportsAccess');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
@@ -147,19 +148,23 @@ async function listUsers({ page = 1, limit = 50, role } = {}) {
  *
  * @returns {Promise<{user:object}>}
  */
-async function createUser({ email, password, name, role }) {
+async function createUser({ email, password, name, role, canAccessReports = false }) {
   const normalised = String(email).trim().toLowerCase();
   const existing = await User.findOne({ email: normalised }).lean();
   if (existing) {
     throw ApiError.conflict('AUTH_EMAIL_TAKEN', 'An account with this email already exists');
   }
   const passwordHash = await User.hashPassword(password);
-  const user = await User.create({
+  const user = new User({
     email: normalised,
     passwordHash,
     name: name || '',
     role: ROLES.includes(role) ? role : 'owner',
   });
+  if (canAccessReports && role !== 'admin') {
+    extendReportsUntil(user, 1);
+  }
+  await user.save();
   return { user: user.toPublicJSON() };
 }
 
@@ -206,6 +211,19 @@ async function updateUser(userId, patch, actingUserId) {
     user.failedLoginAttempts = 0;
     user.lockedUntil = null;
     await tokenService.revokeAllForUser(user._id);
+  }
+
+  if (patch.revokeReportsAccess) {
+    revokeReportsAccess(user);
+  } else if (patch.extendReportsMonths) {
+    if (user.role === 'admin') {
+      throw ApiError.badRequest('REPORTS_ADMIN', 'Admin accounts do not use report subscriptions');
+    }
+    extendReportsUntil(user, patch.extendReportsMonths);
+  } else if (patch.canAccessReports === true) {
+    if (user.role !== 'admin') extendReportsUntil(user, 1);
+  } else if (patch.canAccessReports === false) {
+    revokeReportsAccess(user);
   }
 
   await user.save();

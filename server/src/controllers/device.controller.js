@@ -1,6 +1,8 @@
 'use strict';
 
 const deviceService = require('../services/device.service');
+const { User } = require('../models');
+const { isPrivileged } = require('../utils/roles');
 const alertService = require('../services/alert.service');
 const asyncHandler = require('../utils/asyncHandler');
 const emitter = require('../socket/emitter');
@@ -15,8 +17,19 @@ const list = asyncHandler(async (req, res) => {
 
 /** GET /devices/:deviceId */
 const getOne = asyncHandler(async (req, res) => {
-  // req.device was attached by the ownership middleware.
-  return ok(res, req.device.toPublicJSON());
+  const json = req.device.toPublicJSON();
+  if (isPrivileged(req.user) && req.device.owner) {
+    const owner = await User.findById(req.device.owner).select('email name role canAccessReports');
+    if (owner) {
+      json.ownerProfile = {
+        id: owner._id.toString(),
+        email: owner.email,
+        name: owner.name,
+        role: owner.role,
+      };
+    }
+  }
+  return ok(res, json);
 });
 
 /** POST /devices/claim */

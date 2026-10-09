@@ -19,5 +19,6 @@ router.use('/auth', require('./auth.routes'));
 router.use('/provisioning', require('./provisioning.routes'));
 router.use('/devices', require('./device.routes'));
 router.use('/telemetry', require('./telemetry.routes'));
+router.use('/reports', require('./reports.routes'));
 
 module.exports = router;

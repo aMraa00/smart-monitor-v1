@@ -1,0 +1,118 @@
+'use strict';
+
+const { Device, User, TelemetryLatest } = require('../models');
+
+function csvEscape(value) {
+  const s = value === null || value === undefined ? '' : String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function toCsv(columns, rows) {
+  const header = columns.map((c) => csvEscape(c.header)).join(',');
+  const lines = rows.map((row) => columns.map((c) => csvEscape(c.value(row))).join(','));
+  return `\uFEFF${[header, ...lines].join('\n')}`;
+}
+
+/** Fleet summary counters for the reports dashboard. */
+async function getFleetSummary() {
+  const [devicesTotal, usersTotal, latestSamples] = await Promise.all([
+    Device.countDocuments({}),
+    User.countDocuments({}),
+    TelemetryLatest.countDocuments({}),
+  ]);
+
+  const statusAgg = await Device.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]);
+  const statusCounts = Object.fromEntries(statusAgg.map((row) => [row._id, row.count]));
+
+  const roleAgg = await User.aggregate([{ $group: { _id: '$role', count: { $sum: 1 } } }]);
+  const roleCounts = Object.fromEntries(roleAgg.map((row) => [row._id, row.count]));
+
+  const reportsGranted = await User.countDocuments({ reportsAccessUntil: { $gt: new Date() } });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    devices: { total: devicesTotal, byStatus: statusCounts, withLatestTelemetry: latestSamples },
+    users: { total: usersTotal, byRole: roleCounts, withReportAccess: reportsGranted },
+  };
+}
+
+/** Device rows with owner contact (for CSV / JSON export). */
+async function listDevicesForReport() {
+  const devices = await Device.find({}).sort({ createdAt: -1 }).lean();
+  const ownerIds = [...new Set(devices.map((d) => d.owner).filter(Boolean).map(String))];
+  const owners = await User.find({ _id: { $in: ownerIds } }).select('email name role').lean();
+  const ownerMap = new Map(owners.map((u) => [u._id.toString(), u]));
+
+  return devices.map((d) => {
+    const owner = d.owner ? ownerMap.get(d.owner.toString()) : null;
+    return {
+      deviceId: d.deviceId,
+      displayName: d.displayName || '',
+      locationName: d.locationName || '',
+      model: d.model,
+      firmwareVersion: d.firmwareVersion,
+      status: d.status,
+      lastSeenAt: d.lastSeenAt ? new Date(d.lastSeenAt).toISOString() : '',
+      ownerEmail: owner ? owner.email : '',
+      ownerName: owner ? owner.name : '',
+      ownerRole: owner ? owner.role : '',
+      capabilities: (d.capabilities || []).join('|'),
+    };
+  });
+}
+
+async function exportDevicesCsv() {
+  const rows = await listDevicesForReport();
+  const columns = [
+    { header: 'deviceId', value: (r) => r.deviceId },
+    { header: 'displayName', value: (r) => r.displayName },
+    { header: 'locationName', value: (r) => r.locationName },
+    { header: 'status', value: (r) => r.status },
+    { header: 'lastSeenAt', value: (r) => r.lastSeenAt },
+    { header: 'ownerEmail', value: (r) => r.ownerEmail },
+    { header: 'ownerName', value: (r) => r.ownerName },
+    { header: 'ownerRole', value: (r) => r.ownerRole },
+    { header: 'model', value: (r) => r.model },
+    { header: 'firmwareVersion', value: (r) => r.firmwareVersion },
+    { header: 'capabilities', value: (r) => r.capabilities },
+  ];
+  return toCsv(columns, rows);
+}
+
+async function exportUsersCsv() {
+  const users = await User.find({}).sort({ createdAt: -1 }).lean();
+  const deviceCounts = await Device.aggregate([
+    { $match: { owner: { $ne: null } } },
+    { $group: { _id: '$owner', count: { $sum: 1 } } },
+  ]);
+  const countMap = new Map(deviceCounts.map((row) => [row._id.toString(), row.count]));
+
+  const rows = users.map((u) => ({
+    email: u.email,
+    name: u.name || '',
+    role: u.role,
+    canAccessReports: u.reportsAccessUntil && new Date(u.reportsAccessUntil) > new Date() ? 'yes' : 'no',
+    reportsAccessUntil: u.reportsAccessUntil ? new Date(u.reportsAccessUntil).toISOString() : '',
+    devicesOwned: countMap.get(u._id.toString()) || 0,
+    createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : '',
+  }));
+
+  const columns = [
+    { header: 'email', value: (r) => r.email },
+    { header: 'name', value: (r) => r.name },
+    { header: 'role', value: (r) => r.role },
+    { header: 'canAccessReports', value: (r) => r.canAccessReports },
+    { header: 'reportsAccessUntil', value: (r) => r.reportsAccessUntil },
+    { header: 'devicesOwned', value: (r) => r.devicesOwned },
+    { header: 'createdAt', value: (r) => r.createdAt },
+  ];
+  return toCsv(columns, rows);
+}
+
+module.exports = {
+  getFleetSummary,
+  listDevicesForReport,
+  exportDevicesCsv,
+  exportUsersCsv,
+};

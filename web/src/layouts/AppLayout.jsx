@@ -10,16 +10,24 @@ import Toaster from '../components/Toaster';
 import MobileBottomNav from '../components/MobileBottomNav';
 import InstallPrompt from '../components/InstallPrompt';
 import { IconLogo, IconMoon, IconSun, NavIcon } from '../components/AppIcons';
+import { hasReportsAccess } from '../utils/reportsAccess';
 
 const ALL_ROLES = ['admin', 'manager', 'owner', 'viewer'];
 
 const NAV = [
   { to: '/', labelKey: 'nav.dashboard', icon: 'dashboard', roles: ALL_ROLES, end: true },
   { to: '/devices', labelKey: 'nav.devices', icon: 'devices', roles: ALL_ROLES },
+  { to: '/reports', labelKey: 'nav.reports', icon: 'guide', reportsAccess: true },
   { to: '/guide', labelKey: 'nav.guide', icon: 'guide', roles: ALL_ROLES },
   { to: '/users', labelKey: 'nav.users', icon: 'settings', roles: ['admin'] },
   { to: '/settings', labelKey: 'nav.settings', icon: 'settings', roles: ALL_ROLES },
 ];
+
+function canSeeNavItem(item, user) {
+  if (!user) return false;
+  if (item.reportsAccess) return hasReportsAccess(user);
+  return item.roles?.includes(user.role);
+}
 
 const SOCKET_TONE = {
   online: 'ok',
@@ -42,7 +50,7 @@ export function AppLayout() {
 
   useAlertNotifications(alertsEnabled);
 
-  const visibleNav = NAV.filter((item) => item.roles.includes(user?.role));
+  const visibleNav = NAV.filter((item) => canSeeNavItem(item, user));
 
   async function handleLogout() {
     await logout();

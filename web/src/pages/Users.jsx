@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useUiStore } from '../stores/uiStore';
 import { useI18n } from '../i18n/useI18n';
 import { useApiError } from '../i18n/useApiError';
+import { formatReportsUntil, hasReportsAccess } from '../utils/reportsAccess';
 
 /** Accent per role, mirroring Settings.jsx. */
 const ROLE_TONE = { admin: 'info', manager: 'warn', owner: 'neutral', viewer: 'neutral' };
@@ -36,7 +37,7 @@ function RoleSelect({ value, onChange, disabled, t }) {
  * Admin-only account management (list, create, update, delete).
  */
 export function UsersPage() {
-  const { t } = useI18n();
+  const { t, dateLocale } = useI18n();
   const { message: apiError } = useApiError();
   const { user: me } = useAuth();
   const [users, setUsers] = useState([]);
@@ -80,11 +81,21 @@ export function UsersPage() {
     }
   }
 
-  async function handleUpdate(userId, patch) {
+  async function handleUpdate(userId, patch, { closeModal = true } = {}) {
     const updated = await updateUser(userId, patch);
     setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
-    toast(t('users.updatedToast', { email: updated.email }), 'ok');
-    setEditUser(null);
+    if (patch.extendReportsMonths) {
+      const until = updated.reportsAccessUntil
+        ? new Date(updated.reportsAccessUntil).toLocaleDateString(dateLocale)
+        : '—';
+      toast(t('users.reportsExtended', { date: until }), 'ok');
+    } else if (patch.revokeReportsAccess) {
+      toast(t('users.reportsRevoked'), 'ok');
+    } else {
+      toast(t('users.updatedToast', { email: updated.email }), 'ok');
+    }
+    if (closeModal) setEditUser(null);
+    else setEditUser(updated);
   }
 
   async function handleDelete(userId) {
@@ -130,6 +141,7 @@ export function UsersPage() {
                       <th>{t('users.colEmail')}</th>
                       <th>{t('users.colName')}</th>
                       <th>{t('users.colRole')}</th>
+                      <th>{t('users.colReports')}</th>
                       <th>{t('users.colCreated')}</th>
                       <th>{t('users.colActions')}</th>
                     </tr>
@@ -143,6 +155,32 @@ export function UsersPage() {
                           <td>{u.name || '—'}</td>
                           <td>
                             <Badge tone={ROLE_TONE[u.role] || 'neutral'}>{u.role}</Badge>
+                          </td>
+                          <td>
+                            {u.role === 'admin' ? (
+                              <div className="reports-cell">
+                                <Badge tone="ok">{t('users.reportsAlways')}</Badge>
+                                <span className="muted reports-cell__sub">{t('users.reportsAdminHint')}</span>
+                              </div>
+                            ) : (
+                              <div className="reports-cell">
+                                <Badge tone={hasReportsAccess(u) ? 'ok' : 'warn'}>
+                                  {hasReportsAccess(u) ? t('users.reportsYes') : t('users.reportsNo')}
+                                </Badge>
+                                <span className="muted reports-cell__sub">
+                                  {formatReportsUntil(u.reportsAccessUntil, t, dateLocale)}
+                                </span>
+                                <div className="table-actions">
+                                  <button
+                                    type="button"
+                                    className="button button--ghost button--sm"
+                                    onClick={() => handleUpdate(u.id, { extendReportsMonths: 1 }, { closeModal: false })}
+                                  >
+                                    {t('users.extendReports')}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </td>
                           <td className="muted">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
                           <td>
@@ -179,6 +217,7 @@ export function UsersPage() {
         onSave={handleUpdate}
         t={t}
         apiError={apiError}
+        dateLocale={dateLocale}
       />
 
       <Modal
@@ -212,17 +251,25 @@ function UserCreateForm({ onCreate, creating, t, apiError }) {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('owner');
+  const [canAccessReports, setCanAccessReports] = useState(false);
   const [message, setMessage] = useState(null);
 
   async function submit(event) {
     event.preventDefault();
     setMessage(null);
     try {
-      await onCreate({ email: email.trim(), password, name: name.trim(), role });
+      await onCreate({
+        email: email.trim(),
+        password,
+        name: name.trim(),
+        role,
+        canAccessReports: role === 'admin' ? false : canAccessReports,
+      });
       setEmail('');
       setName('');
       setPassword('');
       setRole('owner');
+      setCanAccessReports(false);
       setMessage({ tone: 'ok', text: t('users.createOk') });
     } catch (err) {
       setMessage({ tone: 'danger', text: apiError(err) });
@@ -250,6 +297,15 @@ function UserCreateForm({ onCreate, creating, t, apiError }) {
             <RoleSelect value={role} onChange={(e) => setRole(e.target.value)} t={t} />
           </label>
         </div>
+        {role !== 'admin' && (
+          <>
+            <label className="settings-toggle">
+              <span className="settings-toggle__label">{t('users.reportsAccessLabel')}</span>
+              <input type="checkbox" checked={canAccessReports} onChange={(e) => setCanAccessReports(e.target.checked)} />
+            </label>
+            <p className="field__hint">{t('users.reportsGrantHint')}</p>
+          </>
+        )}
         {message && <p className={`form__${message.tone === 'ok' ? 'success' : 'error'}`}>{message.text}</p>}
         <button type="submit" className="button button--primary" disabled={creating}>
           {creating ? t('users.creating') : t('users.create')}
@@ -259,7 +315,7 @@ function UserCreateForm({ onCreate, creating, t, apiError }) {
   );
 }
 
-function UserEditModal({ user, selfId, onClose, onSave, t, apiError }) {
+function UserEditModal({ user, selfId, onClose, onSave, t, apiError, dateLocale }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('owner');
@@ -299,6 +355,30 @@ function UserEditModal({ user, selfId, onClose, onSave, t, apiError }) {
     }
   }
 
+  async function extendReports() {
+    setError('');
+    setSaving(true);
+    try {
+      await onSave(user.id, { extendReportsMonths: 1 }, { closeModal: false });
+    } catch (err) {
+      setError(apiError(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function revokeReports() {
+    setError('');
+    setSaving(true);
+    try {
+      await onSave(user.id, { revokeReportsAccess: true }, { closeModal: false });
+    } catch (err) {
+      setError(apiError(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Modal open={Boolean(user)} title={t('users.editTitle')} onClose={onClose}>
       <form className="form" onSubmit={submit}>
@@ -319,6 +399,20 @@ function UserEditModal({ user, selfId, onClose, onSave, t, apiError }) {
           <span>{t('users.role')}</span>
           <RoleSelect value={role} onChange={(e) => setRole(e.target.value)} disabled={isSelf} t={t} />
         </label>
+        {role !== 'admin' && (
+          <div className="subsection">
+            <p className="subsection__title">{t('users.reportsSection')}</p>
+            <p className="muted">{formatReportsUntil(user.reportsAccessUntil, t, dateLocale)}</p>
+            <div className="button-row">
+              <button type="button" className="button button--secondary" disabled={saving} onClick={extendReports}>
+                {t('users.extendReports')}
+              </button>
+              <button type="button" className="button button--ghost" disabled={saving} onClick={revokeReports}>
+                {t('users.revokeReports')}
+              </button>
+            </div>
+          </div>
+        )}
         <label className="field">
           <span>{t('users.newPassword')}</span>
           <input

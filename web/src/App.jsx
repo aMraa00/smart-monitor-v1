@@ -8,6 +8,8 @@ import DevicesPage from './pages/Devices';
 import DeviceDetailPage from './pages/DeviceDetail';
 import SettingsPage from './pages/Settings';
 import UsersPage from './pages/Users';
+import ReportsPage from './pages/Reports';
+import { hasReportsAccess } from './utils/reportsAccess';
 import GuidePage from './pages/Guide';
 import EmptyState from './components/EmptyState';
 import { Spinner } from './components/Spinner';
@@ -48,6 +50,22 @@ function RequireAuth({ children }) {
  * (prompt §42). Without it an owner typing /users by hand would only see a
  * 403 after the page already fired its requests.
  */
+/** Report pages: admin always; others need `canAccessReports` from the API. */
+function RequireReports({ children }) {
+  const { user } = useAuth();
+  const { t } = useI18n();
+  if (!user) return null;
+  if (hasReportsAccess(user)) return children;
+
+  return (
+    <EmptyState
+      icon="📊"
+      title={t('reports.deniedTitle')}
+      hint={t('reports.deniedHint')}
+    />
+  );
+}
+
 function RequireRole({ roles, children }) {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -111,6 +129,14 @@ export function App() {
               <RequireRole roles={['admin']}>
                 <UsersPage />
               </RequireRole>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <RequireReports>
+                <ReportsPage />
+              </RequireReports>
             }
           />
           <Route path="settings" element={<SettingsPage />} />

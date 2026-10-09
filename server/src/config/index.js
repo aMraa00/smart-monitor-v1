@@ -40,6 +40,21 @@ function intEnv(name, fallback) {
 }
 
 /**
+ * Normalise one allow-list entry to the origin the browser sends (scheme+host+port).
+ * Operators often paste a dashboard path (`…vercel.app/login`); Origin never
+ * includes a path, so strip it here instead of failing CORS silently.
+ */
+function normalizeClientOrigin(value) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+}
+
+/**
  * Parse the comma separated CLIENT_URL allow-list.
  *
  * Two deployment foot-guns are handled here, both of which otherwise produce a
@@ -52,7 +67,7 @@ function clientUrls() {
   const raw = process.env.CLIENT_URL || '';
   return raw
     .split(',')
-    .map((value) => value.trim())
+    .map((value) => normalizeClientOrigin(value))
     .filter(Boolean);
 }
 

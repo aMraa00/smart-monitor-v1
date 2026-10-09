@@ -100,7 +100,8 @@ http.interceptors.request.use((config) => {
 
 /** Refresh the token pair; concurrent callers share one in-flight refresh. */
 let refreshInFlight = null;
-async function refreshSession() {
+/** Refresh access token (shared by interceptors and export downloads). */
+export async function refreshSession() {
   if (refreshInFlight) return refreshInFlight;
 
   const refreshToken = getRefreshToken();

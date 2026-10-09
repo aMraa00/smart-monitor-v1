@@ -1,8 +1,8 @@
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
 const ApiError = require('../utils/apiError');
+const { sampleToWideRow, sampleToLongRows } = require('../utils/telemetryExportFormat');
 
 let ExcelJS;
 try {
@@ -10,46 +10,92 @@ try {
 } catch {
   ExcelJS = null;
 }
-const { sampleToWideRow, sampleToLongRows } = require('../utils/telemetryExportFormat');
 
 const TEMPLATE_PATH = path.join(__dirname, '../../assets/telemetry-dashboard.template.xlsx');
+const SHEET_DASHBOARD = 'ХЯНАХ САМБАР';
 const SHEET_MEASUREMENTS = 'ХЭМЖИЛТҮҮД';
 const SHEET_RAW = 'ЭХ ӨГӨГДӨЛ';
-const TABLE_MEASUREMENTS = 'TelemetrySamples';
-const TABLE_RAW = 'RawTelemetry';
+const SHEET_HELP = 'ТАЙЛБАР';
 
-function clearRowsFrom(worksheet, startRow) {
-  const last = worksheet.lastRow ? worksheet.lastRow.number : startRow - 1;
-  if (last >= startRow) worksheet.spliceRows(startRow, last - startRow + 1);
+const WIDE_HEADERS = [
+  'Огноо, цаг (UTC)',
+  'Төхөөрөмж',
+  'Цагийн чанар',
+  'Температур (°C)',
+  'Чийгшил (%)',
+  'Даралт (hPa)',
+  'Гэрэлтүүлэг (lx)',
+  'eCO₂ (ppm)',
+  'TVOC (ppb)',
+  'Салхины эргэлт (rpm)',
+  'Салхины хурд (м/с)',
+];
+
+const RAW_HEADERS = [
+  'deviceId',
+  'displayName',
+  'locationName',
+  'ts',
+  'sampleId',
+  'timeQuality',
+  'capability',
+  'value',
+  'unit',
+  'quality',
+];
+
+function styleHeaderRow(row) {
+  row.font = { bold: true };
+  row.alignment = { vertical: 'middle', wrapText: true };
 }
 
-function columnLetter(index) {
-  let n = index;
-  let label = '';
-  while (n > 0) {
-    const rem = (n - 1) % 26;
-    label = String.fromCharCode(65 + rem) + label;
-    n = Math.floor((n - 1) / 26);
+/** Build dashboard workbook (ExcelJS cannot reliably load the chart-heavy template). */
+function buildWorkbookProgrammatic(docs, deviceMap) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Smart Monitor';
+  workbook.created = new Date();
+
+  const wsDash = workbook.addWorksheet(SHEET_DASHBOARD);
+  wsDash.addRow(['Smart Monitor — Telemetry Dashboard']);
+  wsDash.addRow(['Generated (UTC)', new Date().toISOString()]);
+  wsDash.addRow(['Samples in export', docs.length]);
+  wsDash.addRow([]);
+  wsDash.addRow(['«ХЭМЖИЛТҮҮД» хүснэгтэд мэдрэгчийн өгөгдөл байна.']);
+  wsDash.addRow(['«ЭХ ӨГӨГДӨЛ» — нэг мөр бүр нэг уншилт (raw).']);
+
+  const wsWide = workbook.addWorksheet(SHEET_MEASUREMENTS);
+  styleHeaderRow(wsWide.addRow(WIDE_HEADERS));
+  wsWide.views = [{ state: 'frozen', ySplit: 1 }];
+  for (const doc of docs) {
+    const meta = deviceMap.get(String(doc.device));
+    wsWide.addRow(sampleToWideRow(doc, meta));
   }
-  return label;
-}
+  wsWide.columns.forEach((col) => {
+    col.width = 18;
+  });
+  wsWide.getColumn(1).width = 22;
 
-function resizeTable(worksheet, tableName, colCount, rowCount) {
-  try {
-    const table = worksheet.getTable(tableName);
-    if (!table) return;
-    table.ref = `A1:${columnLetter(colCount)}${rowCount}`;
-    table.commit();
-  } catch {
-    /* non-fatal if the template table metadata differs */
+  const wsRaw = workbook.addWorksheet(SHEET_RAW);
+  styleHeaderRow(wsRaw.addRow(RAW_HEADERS));
+  wsRaw.views = [{ state: 'frozen', ySplit: 1 }];
+  for (const doc of docs) {
+    const meta = deviceMap.get(String(doc.device));
+    for (const row of sampleToLongRows(doc, meta)) wsRaw.addRow(row);
   }
+  wsRaw.columns.forEach((col) => {
+    col.width = 16;
+  });
+  wsRaw.getColumn(4).width = 24;
+
+  const wsHelp = workbook.addWorksheet(SHEET_HELP);
+  wsHelp.addRow(['Тайлбар']);
+  wsHelp.addRow(['Энэ файлыг Smart Monitor вебээс автоматаар үүсгэсэн.']);
+  wsHelp.addRow(['Даралт: Pa → hPa хөрвүүлсэн (шаблонтой ижил).']);
+  wsHelp.addRow(['Хугацаа: UTC.']);
+
+  return workbook;
 }
 
-/**
- * Fill Smart Monitor dashboard workbook (charts + «ХЭМЖИЛТҮҮД» + «ЭХ ӨГӨГДӨЛ»).
- * @param {object[]} docs telemetry samples (sorted)
- * @param {Map<string, object>} deviceMap
- */
 async function buildTelemetryWorkbook(docs, deviceMap) {
   if (!ExcelJS) {
     throw new ApiError(
@@ -58,43 +104,13 @@ async function buildTelemetryWorkbook(docs, deviceMap) {
       'Excel export is not available on this server (exceljs not installed)'
     );
   }
-  if (!fs.existsSync(TEMPLATE_PATH)) {
-    throw new ApiError(500, 'REPORT_TEMPLATE_MISSING', 'Telemetry dashboard template file is missing on the server');
-  }
 
-  const workbook = new ExcelJS.Workbook();
+  const workbook = buildWorkbookProgrammatic(docs, deviceMap);
   try {
-    await workbook.xlsx.readFile(TEMPLATE_PATH);
+    return await workbook.xlsx.writeBuffer();
   } catch (err) {
-    throw new ApiError(500, 'REPORT_TEMPLATE_READ_FAILED', err.message || 'Cannot read report template');
+    throw new ApiError(500, 'REPORT_WRITE_FAILED', err.message || 'Cannot write report file');
   }
-
-  const wsWide = workbook.getWorksheet(SHEET_MEASUREMENTS);
-  const wsRaw = workbook.getWorksheet(SHEET_RAW);
-  if (!wsWide || !wsRaw) {
-    throw new Error('Telemetry dashboard template is missing required worksheets');
-  }
-
-  clearRowsFrom(wsWide, 2);
-  clearRowsFrom(wsRaw, 2);
-
-  const wideRows = [];
-  const longRows = [];
-  for (const doc of docs) {
-    const meta = deviceMap.get(String(doc.device));
-    wideRows.push(sampleToWideRow(doc, meta));
-    longRows.push(...sampleToLongRows(doc, meta));
-  }
-
-  for (const row of wideRows) wsWide.addRow(row);
-  for (const row of longRows) wsRaw.addRow(row);
-
-  const wideCount = Math.max(1, wideRows.length + 1);
-  const rawCount = Math.max(1, longRows.length + 1);
-  resizeTable(wsWide, TABLE_MEASUREMENTS, 11, wideCount);
-  resizeTable(wsRaw, TABLE_RAW, 10, rawCount);
-
-  return workbook.xlsx.writeBuffer();
 }
 
 module.exports = { buildTelemetryWorkbook, TEMPLATE_PATH };

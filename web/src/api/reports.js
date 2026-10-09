@@ -1,4 +1,4 @@
-import { http } from './client';
+import { http, getRefreshToken, refreshSession } from './client';
 
 export async function fetchReportSummary() {
   const { data } = await http.get('/reports/summary');
@@ -36,6 +36,14 @@ export async function downloadReportCsv(kind, query = {}) {
   });
 
   const timeoutMs = kind === 'telemetryWorkbook' ? 120000 : 60000;
+
+  if (getRefreshToken()) {
+    try {
+      await refreshSession();
+    } catch {
+      /* interceptor will retry once on 401 */
+    }
+  }
 
   let response;
   try {

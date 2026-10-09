@@ -16,20 +16,21 @@ import { useUiStore } from '../stores/uiStore';
 import { useAuth } from '../hooks/useAuth';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { addRealtimeListener, subscribeDevice } from '../hooks/useSocket';
-import { isOnline, formatDateTime, formatRelative, STATUS_TONE } from '../utils/formatters';
+import { useI18n } from '../i18n/useI18n';
+import { isOnline, formatDateTime, formatRelative, STATUS_TONE, deviceStatusLabel } from '../utils/formatters';
 
 /** Roles allowed to revoke/delete a device (mirrors `requireRole` server-side). */
 const DESTRUCTIVE_ROLES = ['admin', 'owner'];
 
-/**
- * Everything about one station: live readings, history, alert rules,
- * configuration and the ownership/danger actions.
- *
- * Ownership is enforced server-side on every call; this page never assumes the
- * user still owns the device (a transfer or revoke elsewhere simply results in
- * a 404 that we render as "not found").
- */
+function timeQualityLabel(quality, t) {
+  if (!quality) return t('deviceDetail.timeQualityUnknown');
+  const key = `deviceDetail.timeQuality${quality.charAt(0).toUpperCase()}${quality.slice(1)}`;
+  const translated = t(key);
+  return translated === key ? quality : translated;
+}
+
 export function DeviceDetailPage() {
+  const { t, dateLocale } = useI18n();
   const { deviceId } = useParams();
   const navigate = useNavigate();
   const toast = useUiStore((s) => s.toast);
@@ -41,7 +42,7 @@ export function DeviceDetailPage() {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [secret, setSecret] = useState(null);
-  const [confirm, setConfirm] = useState(null); // 'revoke' | 'delete'
+  const [confirm, setConfirm] = useState(null);
 
   const { latest, live, loading: telemetryLoading } = useTelemetry(deviceId);
 
@@ -63,22 +64,18 @@ export function DeviceDetailPage() {
     loadDevice();
   }, [loadDevice]);
 
-  // Join the device room so live samples and alerts arrive while this page is open.
   useEffect(() => subscribeDevice(deviceId, () => {}), [deviceId]);
 
-  // A transfer/revoke/delete may land while this page is open (from this tab's
-  // own modals or from another tab entirely): react from the socket instead of
-  // a reload, so the page never shows a tombstone the server has moved past.
   useEffect(() => {
     const off = addRealtimeListener((event, payload) => {
       if (!payload || payload.deviceId !== deviceId) return;
       if (event === 'device:deleted') {
-        toast('This device was deleted', 'warn');
+        toast(t('deviceDetail.toastDeletedRemote'), 'warn');
         navigate('/devices', { replace: true });
       } else if (event === 'device:revoked') {
         setDevice((prev) => (prev ? { ...prev, status: 'revoked', revokedAt: payload.revokedAt } : prev));
         merge(deviceId, { status: 'revoked', revokedAt: payload.revokedAt });
-        toast('This device was revoked - its credentials no longer work', 'warn');
+        toast(t('deviceDetail.toastRevokedRemote'), 'warn');
       } else if (event === 'device:updated') {
         setDevice((prev) =>
           prev
@@ -97,7 +94,7 @@ export function DeviceDetailPage() {
       }
     });
     return off;
-  }, [deviceId, merge, navigate, toast]);
+  }, [deviceId, merge, navigate, toast, t]);
 
   async function save(patch) {
     setSaving(true);
@@ -105,7 +102,7 @@ export function DeviceDetailPage() {
       const updated = await devicesApi.updateDevice(deviceId, patch);
       setDevice(updated);
       merge(deviceId, updated);
-      toast('Device updated', 'ok');
+      toast(t('deviceDetail.toastUpdated'), 'ok');
     } finally {
       setSaving(false);
     }
@@ -115,7 +112,7 @@ export function DeviceDetailPage() {
     try {
       const result = await devicesApi.rotateSecret(deviceId);
       setSecret(result.deviceSecret);
-      toast('New secret issued - copy it now', 'warn');
+      toast(t('deviceDetail.toastSecret'), 'warn');
     } catch (err) {
       toast(err.message, 'danger');
     }
@@ -125,7 +122,7 @@ export function DeviceDetailPage() {
     try {
       await devicesApi.transferDevice(deviceId, toEmail);
       await loadDevice();
-      toast(`Transferred to ${toEmail}`, 'ok');
+      toast(t('deviceDetail.toastTransferred', { email: toEmail }), 'ok');
     } catch (err) {
       toast(err.message, 'danger');
     }
@@ -135,7 +132,7 @@ export function DeviceDetailPage() {
     try {
       await devicesApi.revokeDevice(deviceId);
       await loadDevice();
-      toast('Device revoked - its HMAC credentials no longer work', 'warn');
+      toast(t('deviceDetail.toastRevoked'), 'warn');
     } catch (err) {
       toast(err.message, 'danger');
     } finally {
@@ -147,7 +144,7 @@ export function DeviceDetailPage() {
     try {
       await devicesApi.deleteDevice(deviceId);
       remove(deviceId);
-      toast('Device deleted', 'ok');
+      toast(t('deviceDetail.toastDeleted'), 'ok');
       navigate('/devices', { replace: true });
     } catch (err) {
       toast(err.message, 'danger');
@@ -160,27 +157,20 @@ export function DeviceDetailPage() {
     return (
       <EmptyState
         icon="🚫"
-        title={error.status === 404 ? 'Device not found' : 'Could not load this device'}
-        hint={
-          error.status === 404
-            ? 'It may have been transferred away, deleted, or never existed.'
-            : error.message
-        }
+        title={error.status === 404 ? t('deviceDetail.notFound') : t('deviceDetail.loadFailed')}
+        hint={error.status === 404 ? t('deviceDetail.notFoundHint') : error.message}
         action={
           <Link className="button button--primary" to="/devices">
-            Back to devices
+            {t('deviceDetail.backToDevices')}
           </Link>
         }
       />
     );
   }
 
-  if (!device) return <LoadingBlock label="Loading device" />;
+  if (!device) return <LoadingBlock label={t('deviceDetail.loading')} />;
 
   const online = isOnline(device.lastSeenAt);
-  // Managers may read and configure the fleet but never revoke or delete a
-  // station, so the danger zone is hidden for them instead of 403-ing on click.
-  // The API enforces the same rule regardless of what is rendered here.
   const canDestroy = DESTRUCTIVE_ROLES.includes(user?.role);
 
   return (
@@ -188,34 +178,37 @@ export function DeviceDetailPage() {
       <header className="page-header">
         <div>
           <p className="breadcrumb">
-            <Link to="/devices">Devices</Link> / {device.displayName || device.deviceId}
+            <Link to="/devices">{t('devices.title')}</Link> / {device.displayName || device.deviceId}
           </p>
           <h1>{device.displayName || device.deviceId}</h1>
           <p className="muted">
-            <code>{device.deviceId}</code> · {device.model} · fw {device.firmwareVersion} ·{' '}
-            {device.locationName || 'no location'}
+            <code>{device.deviceId}</code> · {device.model} · {t('deviceDetail.metaFw', { version: device.firmwareVersion })} ·{' '}
+            {device.locationName || t('devices.noLocation')}
           </p>
         </div>
 
         <div className="page-header__actions">
-          <Badge tone={online ? 'ok' : 'warn'}>{online ? 'online' : 'offline'}</Badge>
-          <Badge tone={STATUS_TONE[device.status] || 'neutral'}>{device.status}</Badge>
-          <span className="muted">last seen {formatRelative(device.lastSeenAt)}</span>
+          <Badge tone={online ? 'ok' : 'warn'}>{online ? t('common.online') : t('common.offline')}</Badge>
+          <Badge tone={STATUS_TONE[device.status] || 'neutral'}>{deviceStatusLabel(device.status, t)}</Badge>
+          <span className="muted">
+            {t('devices.lastSeen')} {formatRelative(device.lastSeenAt, t, dateLocale)}
+          </span>
         </div>
       </header>
 
-      <Card title="Live readings" subtitle="Streamed over the realtime channel as samples arrive">
+      <Card title={t('deviceDetail.liveTitle')} subtitle={t('deviceDetail.liveSubtitle')}>
         {telemetryLoading && live.length === 0 ? (
-          <LoadingBlock label="Loading readings" />
+          <LoadingBlock label={t('deviceDetail.loadingReadings')} />
         ) : latest ? (
           <>
             <CapabilityGrid capabilities={device.capabilities} latest={latest} live={live} />
             <p className="muted">
-              sample {formatDateTime(latest.ts)} · time quality <strong>{latest.timeQuality || 'unknown'}</strong>
+              {t('deviceDetail.sampleAt', { time: formatDateTime(latest.ts, dateLocale) })} · {t('deviceDetail.timeQualityLabel')}{' '}
+              <strong>{timeQualityLabel(latest.timeQuality, t)}</strong>
             </p>
           </>
         ) : (
-          <EmptyState icon="⏳" title="No telemetry yet" hint="Waiting for the first sample from this station." />
+          <EmptyState icon="⏳" title={t('deviceDetail.noTelemetryTitle')} hint={t('deviceDetail.noTelemetryHint')} />
         )}
       </Card>
 
@@ -227,93 +220,79 @@ export function DeviceDetailPage() {
 
       <div className="two-col">
         <Card
-          title="Credentials"
-          subtitle="The device secret authenticates telemetry uploads (HMAC). Rotating it takes effect immediately."
+          title={t('deviceDetail.credentialsTitle')}
+          subtitle={t('deviceDetail.credentialsSubtitle')}
           actions={
             <button type="button" className="button button--ghost" onClick={rotate}>
-              Rotate secret
+              {t('deviceDetail.rotateSecret')}
             </button>
           }
         >
-          <p className="muted">
-            The previous secret stops working the moment a new one is issued, and the new value is shown
-            exactly once.
-          </p>
+          <p className="muted">{t('deviceDetail.credentialsHint')}</p>
           <TransferForm onTransfer={transfer} />
         </Card>
 
         {canDestroy ? (
-          <Card title="Danger zone" subtitle="Revoking or deleting breaks the station's access to this platform">
+          <Card title={t('deviceDetail.dangerTitle')} subtitle={t('deviceDetail.dangerSubtitle')}>
             <div className="button-row">
               <button type="button" className="button button--ghost" onClick={() => setConfirm('revoke')}>
-                Revoke device
+                {t('deviceDetail.revoke')}
               </button>
               <button type="button" className="button button--danger" onClick={() => setConfirm('delete')}>
-                Delete device
+                {t('deviceDetail.delete')}
               </button>
             </div>
-            <p className="muted">
-              Revoked: telemetry is rejected but history is kept. Deleted: the device and every dependent
-              document (telemetry, rules, alerts) is removed.
-            </p>
+            <p className="muted">{t('deviceDetail.dangerHint')}</p>
           </Card>
         ) : (
-          <Card title="Danger zone" subtitle="Restricted for your role">
-            <p className="muted">
-              Your role can read and configure this station, but only its owner or an administrator may revoke or
-              delete it.
-            </p>
+          <Card title={t('deviceDetail.dangerRestrictedTitle')} subtitle={t('deviceDetail.dangerRestrictedSubtitle')}>
+            <p className="muted">{t('deviceDetail.dangerRestrictedBody')}</p>
           </Card>
         )}
       </div>
 
-      <Modal open={Boolean(secret)} onClose={() => setSecret(null)} title="New device secret">
-        <p className="form__hint">Copy this now - it is never shown again.</p>
+      <Modal open={Boolean(secret)} onClose={() => setSecret(null)} title={t('deviceDetail.secretModalTitle')}>
+        <p className="form__hint">{t('deviceDetail.secretModalHint')}</p>
         <pre className="code-block">{secret}</pre>
         <button type="button" className="button button--primary" onClick={() => setSecret(null)}>
-          I stored it safely
+          {t('deviceDetail.secretStored')}
         </button>
       </Modal>
 
       <Modal
         open={confirm === 'revoke'}
         onClose={() => setConfirm(null)}
-        title="Revoke this device?"
+        title={t('deviceDetail.revokeModalTitle')}
         footer={
           <>
             <button type="button" className="button button--ghost" onClick={() => setConfirm(null)}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="button" className="button button--danger" onClick={revoke}>
-              Revoke
+              {t('deviceDetail.revokeConfirm')}
             </button>
           </>
         }
       >
-        <p>
-          The station will no longer be able to upload telemetry. Historical data stays available and the
-          device can be transferred to a new owner later.
-        </p>
+        <p>{t('deviceDetail.revokeModalBody')}</p>
       </Modal>
 
       <Modal
         open={confirm === 'delete'}
         onClose={() => setConfirm(null)}
-        title="Delete this device?"
+        title={t('deviceDetail.deleteModalTitle')}
         footer={
           <>
             <button type="button" className="button button--ghost" onClick={() => setConfirm(null)}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="button" className="button button--danger" onClick={destroy}>
-              Delete permanently
+              {t('deviceDetail.deleteConfirmPerm')}
             </button>
           </>
         }
       >
-        <p>
-          This removes the device, its telemetry, alert rules and alert history. It cannot be undone.
-        </p>
+        <p>{t('deviceDetail.deleteModalBody')}</p>
       </Modal>
     </>
   );

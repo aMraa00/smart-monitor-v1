@@ -10,19 +10,27 @@ import { describeCapabilityI18n, orderCapabilities } from '../../utils/capabilit
 import { useI18n } from '../../i18n/useI18n';
 import { formatDateTime, formatValue } from '../../utils/formatters';
 
-const SEVERITIES = ['info', 'warning', 'critical'];
+const SEVERITIES = [
+  { value: 'info', labelKey: 'alertsPanel.severityInfo' },
+  { value: 'warning', labelKey: 'alertsPanel.severityWarning' },
+  { value: 'critical', labelKey: 'alertsPanel.severityCritical' },
+];
+
 const STATE_TONE = { firing: 'danger', pending: 'warn', resolved: 'ok' };
 
-/**
- * Threshold rules + alert history for one device.
- *
- * The rule engine itself lives server-side (state machine, anti-flapping
- * window, exactly one open alert per capability). This panel only edits rules
- * and listens for `alert:raised` / `alert:resolved`, so two open tabs cannot
- * disagree about the current state.
- */
+function alertStateLabel(state, t) {
+  const key = `alertsPanel.state${state.charAt(0).toUpperCase()}${state.slice(1)}`;
+  const translated = t(key);
+  return translated === key ? state : translated;
+}
+
+function severityLabel(severity, t) {
+  const found = SEVERITIES.find((s) => s.value === severity);
+  return found ? t(found.labelKey) : severity;
+}
+
 export function AlertsPanel({ deviceId, capabilities = [] }) {
-  const { t } = useI18n();
+  const { t, dateLocale } = useI18n();
   const capabilitiesList = orderCapabilities(capabilities);
   const [rules, setRules] = useState(null);
   const [alerts, setAlerts] = useState([]);
@@ -59,7 +67,6 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
     reload();
   }, [reload]);
 
-  // Live alert transitions update the panel without a manual refresh.
   useEffect(() => {
     const off = addRealtimeListener((event, payload) => {
       if (!payload || payload.deviceId !== deviceId) return;
@@ -100,15 +107,15 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
     await reload();
   }
 
-  if (rules === null) return <LoadingBlock label="Loading alerts" />;
+  if (rules === null) return <LoadingBlock label={t('alertsPanel.loading')} />;
 
   return (
     <Card
-      title="Alerts"
-      subtitle="Threshold rules with an anti-flapping window"
+      title={t('alertsPanel.title')}
+      subtitle={t('alertsPanel.subtitle')}
       actions={
         <button type="button" className="button button--primary" onClick={() => setModalOpen(true)}>
-          New rule
+          {t('alertsPanel.newRule')}
         </button>
       }
     >
@@ -119,73 +126,75 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
       )}
 
       {rules.length === 0 ? (
-        <EmptyState icon="🚨" title="No alert rules yet" hint="Get notified when a reading leaves its safe range." />
+        <EmptyState icon="🚨" title={t('alertsPanel.emptyRulesTitle')} hint={t('alertsPanel.emptyRulesHint')} />
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Capability</th>
-              <th>Range</th>
-              <th>For</th>
-              <th>Severity</th>
-              <th>Enabled</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rules.map((rule) => {
-              const meta = describeCapabilityI18n(rule.capability, t);
-              const lo = rule.min === null ? '-inf' : formatValue(rule.min, { decimals: meta.decimals });
-              const hi = rule.max === null ? '+inf' : formatValue(rule.max, { decimals: meta.decimals });
-              return (
-                <tr key={rule.id}>
-                  <td>{meta.label}</td>
-                  <td>
-                    {lo} - {hi} {meta.unit}
-                  </td>
-                  <td>{rule.forSeconds}s</td>
-                  <td>
-                    <Badge tone={rule.severity === 'critical' ? 'danger' : rule.severity === 'warning' ? 'warn' : 'info'}>
-                      {rule.severity}
-                    </Badge>
-                  </td>
-                  <td>
-                    <button type="button" className="button button--ghost" onClick={() => toggleRule(rule)}>
-                      {rule.enabled ? 'on' : 'off'}
-                    </button>
-                  </td>
-                  <td>
-                    <button type="button" className="button button--ghost" onClick={() => removeRule(rule)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t('alertsPanel.colCapability')}</th>
+                <th>{t('alertsPanel.colRange')}</th>
+                <th>{t('alertsPanel.colFor')}</th>
+                <th>{t('alertsPanel.colSeverity')}</th>
+                <th>{t('alertsPanel.colEnabled')}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rules.map((rule) => {
+                const meta = describeCapabilityI18n(rule.capability, t);
+                const lo = rule.min === null ? t('alertsPanel.rangeNegInf') : formatValue(rule.min, { decimals: meta.decimals });
+                const hi = rule.max === null ? t('alertsPanel.rangePosInf') : formatValue(rule.max, { decimals: meta.decimals });
+                return (
+                  <tr key={rule.id}>
+                    <td>{meta.label}</td>
+                    <td>
+                      {lo} - {hi} {meta.unit}
+                    </td>
+                    <td>{rule.forSeconds}s</td>
+                    <td>
+                      <Badge tone={rule.severity === 'critical' ? 'danger' : rule.severity === 'warning' ? 'warn' : 'info'}>
+                        {severityLabel(rule.severity, t)}
+                      </Badge>
+                    </td>
+                    <td>
+                      <button type="button" className="button button--ghost button--sm" onClick={() => toggleRule(rule)}>
+                        {rule.enabled ? t('alertsPanel.on') : t('alertsPanel.off')}
+                      </button>
+                    </td>
+                    <td>
+                      <button type="button" className="button button--ghost button--sm" onClick={() => removeRule(rule)}>
+                        {t('alertsPanel.delete')}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <h3 className="subsection__title">Recent activity</h3>
+      <h3 className="subsection__title">{t('alertsPanel.recentActivity')}</h3>
       {alerts.length === 0 ? (
-        <p className="muted">Nothing has breached a rule on this device.</p>
+        <p className="muted">{t('alertsPanel.recentEmpty')}</p>
       ) : (
         <ul className="alert-list">
           {alerts.map((alert) => (
             <li key={alert.id} className="alert-list__item">
-              <Badge tone={STATE_TONE[alert.state] || 'neutral'}>{alert.state}</Badge>
+              <Badge tone={STATE_TONE[alert.state] || 'neutral'}>{alertStateLabel(alert.state, t)}</Badge>
               <span className="alert-list__capability">{describeCapabilityI18n(alert.capability, t).label}</span>
               <span className="alert-list__value">{formatValue(alert.lastValue, { decimals: 1 })}</span>
-              <span className="alert-list__time">{formatDateTime(alert.startedAt)}</span>
+              <span className="alert-list__time">{formatDateTime(alert.startedAt, dateLocale)}</span>
             </li>
           ))}
         </ul>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New alert rule">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={t('alertsPanel.modalTitle')}>
         <form className="form" onSubmit={createRule}>
           <label className="field">
-            <span>Capability</span>
+            <span>{t('alertsPanel.colCapability')}</span>
             <select value={form.capability} onChange={(e) => setForm({ ...form, capability: e.target.value })} required>
               {capabilitiesList.map((name) => (
                 <option key={name} value={name}>
@@ -197,27 +206,27 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
 
           <div className="form__grid">
             <label className="field">
-              <span>Min</span>
+              <span>{t('alertsPanel.min')}</span>
               <input
                 type="number"
                 step="any"
                 value={form.min}
                 onChange={(e) => setForm({ ...form, min: e.target.value })}
-                placeholder="empty = none"
+                placeholder={t('alertsPanel.minPlaceholder')}
               />
             </label>
             <label className="field">
-              <span>Max</span>
+              <span>{t('alertsPanel.max')}</span>
               <input
                 type="number"
                 step="any"
                 value={form.max}
                 onChange={(e) => setForm({ ...form, max: e.target.value })}
-                placeholder="empty = none"
+                placeholder={t('alertsPanel.maxPlaceholder')}
               />
             </label>
             <label className="field">
-              <span>Must persist (s)</span>
+              <span>{t('alertsPanel.persistSeconds')}</span>
               <input
                 type="number"
                 min="0"
@@ -227,11 +236,11 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
               />
             </label>
             <label className="field">
-              <span>Severity</span>
+              <span>{t('alertsPanel.severity')}</span>
               <select value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>
-                {SEVERITIES.map((severity) => (
-                  <option key={severity} value={severity}>
-                    {severity}
+                {SEVERITIES.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {t(item.labelKey)}
                   </option>
                 ))}
               </select>
@@ -239,12 +248,12 @@ export function AlertsPanel({ deviceId, capabilities = [] }) {
           </div>
 
           <label className="field">
-            <span>Name (optional)</span>
+            <span>{t('alertsPanel.nameOptional')}</span>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={120} />
           </label>
 
           <button type="submit" className="button button--primary button--block" disabled={saving}>
-            {saving ? 'Saving…' : 'Create rule'}
+            {saving ? t('alertsPanel.saving') : t('alertsPanel.createRule')}
           </button>
         </form>
       </Modal>

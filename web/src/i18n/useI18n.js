@@ -21,5 +21,7 @@ export function useI18n() {
     [dict]
   );
 
-  return { t, locale, setLocale };
+  const dateLocale = locale === 'mn' ? 'mn-MN' : 'en-US';
+
+  return { t, locale, setLocale, dateLocale };
 }

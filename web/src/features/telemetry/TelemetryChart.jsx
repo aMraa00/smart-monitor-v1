@@ -8,19 +8,12 @@ import { describeCapabilityI18n, orderCapabilities } from '../../utils/capabilit
 import { useI18n } from '../../i18n/useI18n';
 
 const RANGES = [
-  { key: '6h', label: '6 h', hours: 6, bucket: 'raw' },
-  { key: '24h', label: '24 h', hours: 24, bucket: 'minute' },
-  { key: '7d', label: '7 d', hours: 24 * 7, bucket: 'hour' },
-  { key: '30d', label: '30 d', hours: 24 * 30, bucket: 'day' },
+  { key: '6h', labelKey: 'deviceDetail.range6h', hours: 6, bucket: 'raw', bucketKey: 'deviceDetail.bucketRaw' },
+  { key: '24h', labelKey: 'deviceDetail.range24h', hours: 24, bucket: 'minute', bucketKey: 'deviceDetail.bucketMinute' },
+  { key: '7d', labelKey: 'deviceDetail.range7d', hours: 24 * 7, bucket: 'hour', bucketKey: 'deviceDetail.bucketHour' },
+  { key: '30d', labelKey: 'deviceDetail.range30d', hours: 24 * 30, bucket: 'day', bucketKey: 'deviceDetail.bucketDay' },
 ];
 
-/**
- * Historical chart for one device.
- *
- * Long ranges are bucketed SERVER-side (§12) - the browser never downloads
- * days of raw samples, it receives min/avg/max per bucket and renders the
- * band. Short ranges use raw points and refresh when live data arrives.
- */
 export function TelemetryChart({ deviceId, capabilities = [] }) {
   const { t } = useI18n();
   const capabilitiesList = orderCapabilities(capabilities);
@@ -32,7 +25,6 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
 
   const range = RANGES.find((r) => r.key === rangeKey) || RANGES[0];
 
-  // A device that stops declaring a capability must not leave a dead selector.
   useEffect(() => {
     if (capabilitiesList.length > 0 && !capabilitiesList.includes(capability)) {
       setCapability(capabilitiesList[0]);
@@ -69,7 +61,6 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
     load();
   }, [load]);
 
-  // Refresh the live window when a sample lands (cheap, debounced by timer).
   useEffect(() => {
     if (range.bucket !== 'raw') return undefined;
     let timer = null;
@@ -89,14 +80,29 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
 
   const meta = describeCapabilityI18n(capability, t);
   const points = history && history.series[0] ? history.series[0].points : [];
+  const bucketLabel = t(history?.bucket ? `deviceDetail.bucket${history.bucket.charAt(0).toUpperCase()}${history.bucket.slice(1)}` : range.bucketKey);
+  const rangeLabel = t(range.labelKey);
 
   return (
     <Card
-      title="History"
-      subtitle={capability ? `${meta.label} · ${range.label} window · ${history?.bucket || range.bucket}` : 'No capability available'}
+      title={t('deviceDetail.historyTitle')}
+      subtitle={
+        capability
+          ? t('deviceDetail.historySubtitle', {
+              capability: meta.label,
+              range: rangeLabel,
+              bucket: bucketLabel,
+            })
+          : t('deviceDetail.historyNoCap')
+      }
       actions={
         <div className="control-row">
-          <select className="select" value={capability} onChange={(e) => setCapability(e.target.value)} aria-label="Capability">
+          <select
+            className="select"
+            value={capability}
+            onChange={(e) => setCapability(e.target.value)}
+            aria-label={t('deviceDetail.capabilityAria')}
+          >
             {capabilitiesList.map((name) => (
               <option key={name} value={name}>
                 {describeCapabilityI18n(name, t).label}
@@ -104,7 +110,7 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
             ))}
           </select>
 
-          <div className="segmented" role="group" aria-label="Time range">
+          <div className="segmented" role="group" aria-label={t('deviceDetail.rangeAria')}>
             {RANGES.map((item) => (
               <button
                 key={item.key}
@@ -112,7 +118,7 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
                 className={`segmented__item ${item.key === rangeKey ? 'segmented__item--active' : ''}`.trim()}
                 onClick={() => setRangeKey(item.key)}
               >
-                {item.label}
+                {t(item.labelKey)}
               </button>
             ))}
           </div>
@@ -121,9 +127,9 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
     >
       {error && <p className="form__error">{error}</p>}
       {!capability ? (
-        <p className="muted">This device declares no capabilities yet.</p>
+        <p className="muted">{t('deviceDetail.historyNoCap')}</p>
       ) : loading && !history ? (
-        <LoadingBlock label="Loading history" />
+        <LoadingBlock label={t('deviceDetail.historyLoading')} />
       ) : (
         <LineChart
           points={points}
@@ -131,7 +137,7 @@ export function TelemetryChart({ deviceId, capabilities = [] }) {
           unit={capability === 'pressure' ? 'Pa' : meta.unit}
           decimals={meta.decimals}
           bucket={history?.bucket || range.bucket}
-          emptyLabel="No samples in this range yet"
+          emptyLabel={t('deviceDetail.historyEmptyChart')}
           height={220}
         />
       )}

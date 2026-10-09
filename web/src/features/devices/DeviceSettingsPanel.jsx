@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import Card from '../../components/Card';
+import { useI18n } from '../../i18n/useI18n';
 
-/**
- * Presentation + configuration editor.
- *
- * Only `displayName`, `locationName` and `config` are writable here - the
- * identity block (deviceId, model, firmware) is read-only by design: renaming
- * or moving a device must never touch identity (§1.2).
- */
 export function DeviceSettingsPanel({ device, onSave, saving }) {
+  const { t } = useI18n();
   const [displayName, setDisplayName] = useState(device.displayName || '');
   const [locationName, setLocationName] = useState(device.locationName || '');
   const [sampleIntervalS, setSampleIntervalS] = useState(device.config?.sampleIntervalS ?? 60);
@@ -34,28 +29,28 @@ export function DeviceSettingsPanel({ device, onSave, saving }) {
           calibration: { windCalibrationCoef: Number(windCoef) },
         },
       });
-      setMessage({ tone: 'ok', text: 'Saved.' });
+      setMessage({ tone: 'ok', text: t('deviceDetail.saved') });
     } catch (err) {
-      setMessage({ tone: 'danger', text: err.message || 'Save failed' });
+      setMessage({ tone: 'danger', text: err.message || t('deviceDetail.saveFailed') });
     }
   }
 
   return (
-    <Card title="Device settings" subtitle="Identity is immutable - only presentation and configuration change here.">
+    <Card title={t('deviceDetail.settingsTitle')} subtitle={t('deviceDetail.settingsSubtitle')}>
       <form className="form" onSubmit={submit}>
         <div className="form__grid">
           <label className="field">
-            <span>Display name</span>
+            <span>{t('deviceDetail.displayName')}</span>
             <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={120} placeholder="Roof station" />
           </label>
 
           <label className="field">
-            <span>Location</span>
+            <span>{t('deviceDetail.location')}</span>
             <input value={locationName} onChange={(e) => setLocationName(e.target.value)} maxLength={160} placeholder="Ulaanbaatar, roof" />
           </label>
 
           <label className="field">
-            <span>Sample interval (s)</span>
+            <span>{t('deviceDetail.sampleInterval')}</span>
             <input
               type="number"
               min={5}
@@ -66,10 +61,10 @@ export function DeviceSettingsPanel({ device, onSave, saving }) {
           </label>
 
           <label className="field">
-            <span>Wind calibration coefficient</span>
+            <span>{t('deviceDetail.windCoef')}</span>
             <input type="number" step="0.01" min="0.01" max="20" value={windCoef} onChange={(e) => setWindCoef(e.target.value)} />
             <small className="field__hint">
-              {Number(windCoef) === 1 ? '1.0 = uncalibrated (readings flagged honestly)' : 'Calibrated'}
+              {Number(windCoef) === 1 ? t('deviceDetail.windUncalibrated') : t('deviceDetail.windCalibrated')}
             </small>
           </label>
         </div>
@@ -81,7 +76,7 @@ export function DeviceSettingsPanel({ device, onSave, saving }) {
         )}
 
         <button type="submit" className="button button--primary" disabled={saving}>
-          {saving ? 'Saving…' : 'Save changes'}
+          {saving ? t('deviceDetail.saving') : t('deviceDetail.saveChanges')}
         </button>
       </form>
     </Card>

@@ -14,11 +14,11 @@ export function toHectopascal(pa) {
 }
 
 /** "2026-02-10T09:15:00.000Z" -> "Feb 10, 09:15" in the viewer's timezone. */
-export function formatDateTime(value) {
+export function formatDateTime(value, locale) {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(locale || undefined, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -36,21 +36,46 @@ export function formatTick(value, bucket) {
 }
 
 /** "3 minutes ago" / "just now" - tolerant of null (device never seen). */
-export function formatRelative(value) {
-  if (!value) return 'never';
+export function formatRelative(value, t, dateLocale) {
+  if (!t) {
+    if (!value) return 'never';
+    const then = new Date(value).getTime();
+    if (Number.isNaN(then)) return 'never';
+    const seconds = Math.round((Date.now() - then) / 1000);
+    if (seconds < 0) return 'just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.round(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    return formatDateTime(value, dateLocale);
+  }
+
+  if (!value) return t('time.never');
   const then = new Date(value).getTime();
-  if (Number.isNaN(then)) return 'never';
+  if (Number.isNaN(then)) return t('time.never');
 
   const seconds = Math.round((Date.now() - then) / 1000);
-  if (seconds < 0) return 'just now';
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 0) return t('time.justNow');
+  if (seconds < 60) return t('time.secondsAgo', { n: seconds });
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t('time.minutesAgo', { n: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('time.hoursAgo', { n: hours });
   const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return formatDateTime(value);
+  if (days < 30) return t('time.daysAgo', { n: days });
+  return formatDateTime(value, dateLocale);
+}
+
+/** Map API device.status to a translated label. */
+export function deviceStatusLabel(status, t) {
+  if (!status || !t) return status || '—';
+  const cap = status.charAt(0).toUpperCase() + status.slice(1);
+  const key = `deviceDetail.deviceStatus${cap}`;
+  const translated = t(key);
+  return translated === key ? status : translated;
 }
 
 /** A device is considered online when it reported inside this window. */

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import Badge from '../../components/Badge';
 import { describeCapabilityI18n } from '../../utils/capabilities';
-import { STATUS_TONE, formatRelative, isOnline } from '../../utils/formatters';
+import { STATUS_TONE, formatRelative, isOnline, deviceStatusLabel } from '../../utils/formatters';
 import { useI18n } from '../../i18n/useI18n';
 
 /**
@@ -11,7 +11,7 @@ import { useI18n } from '../../i18n/useI18n';
  * product model lists its own measurements without touching this file.
  */
 export function DeviceCard({ device }) {
-  const { t } = useI18n();
+  const { t, dateLocale } = useI18n();
   const online = isOnline(device.lastSeenAt);
   const name = device.displayName || device.deviceId;
   const capabilities = (device.capabilities || []).slice(0, 6);
@@ -27,12 +27,12 @@ export function DeviceCard({ device }) {
         </div>
         <div className="device-card__badges">
           <Badge tone={online ? 'ok' : 'danger'}>{online ? t('common.online') : t('common.offline')}</Badge>
-          <Badge tone={STATUS_TONE[device.status] || 'neutral'}>{device.status}</Badge>
+          <Badge tone={STATUS_TONE[device.status] || 'neutral'}>{deviceStatusLabel(device.status, t)}</Badge>
         </div>
       </header>
 
       <p className="device-card__meta">
-        {device.locationName || t('devices.noLocation')} · {t('devices.lastSeen')} {formatRelative(device.lastSeenAt)}
+        {device.locationName || t('devices.noLocation')} · {t('devices.lastSeen')} {formatRelative(device.lastSeenAt, t, dateLocale)}
       </p>
 
       <ul className="device-card__caps">

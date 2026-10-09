@@ -18,7 +18,7 @@ const STALE_AFTER_MS = 45_000;
 const TIME_TONE = { ntp: 'ok', synced: 'warn', estimated: 'danger' };
 
 export function DashboardPage() {
-  const { t } = useI18n();
+  const { t, dateLocale } = useI18n();
   const { devices, loading, load } = useDeviceStore();
   const toast = useUiStore((s) => s.toast);
   const socketState = useUiStore((s) => s.socketState);
@@ -149,8 +149,8 @@ export function DashboardPage() {
             <p className="live-hero__eyebrow">{selected.locationName || t('dashboard.myStation')}</p>
             <h2 className="live-hero__title">{displayName}</h2>
             <p className="live-hero__meta muted">
-              {t('dashboard.lastSeen')} {formatRelative(selected.lastSeenAt)}
-              {latest?.ts ? ` · ${t('dashboard.sample')} ${formatRelative(latest.ts)}` : ''}
+              {t('dashboard.lastSeen')} {formatRelative(selected.lastSeenAt, t, dateLocale)}
+              {latest?.ts ? ` · ${t('dashboard.sample')} ${formatRelative(latest.ts, t, dateLocale)}` : ''}
             </p>
           </div>
           <div className="live-hero__badges">

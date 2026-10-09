@@ -11,7 +11,7 @@ import Sparkline from './Sparkline';
  * `agriculture` or `industrial` device render without a frontend change (§10.2).
  */
 export function StatTile({ capability, reading, trend = [], time, size = 'default' }) {
-  const { t } = useI18n();
+  const { t, dateLocale } = useI18n();
   const meta = describeCapabilityI18n(capability, t);
   const raw = reading ? reading.value : null;
   const quality = reading ? reading.quality : null;
@@ -54,7 +54,7 @@ export function StatTile({ capability, reading, trend = [], time, size = 'defaul
 
       <footer className="tile__foot">
         <Sparkline values={trend} color={meta.color} />
-        <span className="tile__time">{formatRelative(time)}</span>
+        <span className="tile__time">{formatRelative(time, t, dateLocale)}</span>
       </footer>
     </article>
   );

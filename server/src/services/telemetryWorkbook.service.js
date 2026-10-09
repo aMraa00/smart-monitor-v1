@@ -1,7 +1,15 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
-const ExcelJS = require('exceljs');
+const ApiError = require('../utils/apiError');
+
+let ExcelJS;
+try {
+  ExcelJS = require('exceljs');
+} catch {
+  ExcelJS = null;
+}
 const { sampleToWideRow, sampleToLongRows } = require('../utils/telemetryExportFormat');
 
 const TEMPLATE_PATH = path.join(__dirname, '../../assets/telemetry-dashboard.template.xlsx');
@@ -43,8 +51,23 @@ function resizeTable(worksheet, tableName, colCount, rowCount) {
  * @param {Map<string, object>} deviceMap
  */
 async function buildTelemetryWorkbook(docs, deviceMap) {
+  if (!ExcelJS) {
+    throw new ApiError(
+      500,
+      'REPORT_ENGINE_MISSING',
+      'Excel export is not available on this server (exceljs not installed)'
+    );
+  }
+  if (!fs.existsSync(TEMPLATE_PATH)) {
+    throw new ApiError(500, 'REPORT_TEMPLATE_MISSING', 'Telemetry dashboard template file is missing on the server');
+  }
+
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(TEMPLATE_PATH);
+  try {
+    await workbook.xlsx.readFile(TEMPLATE_PATH);
+  } catch (err) {
+    throw new ApiError(500, 'REPORT_TEMPLATE_READ_FAILED', err.message || 'Cannot read report template');
+  }
 
   const wsWide = workbook.getWorksheet(SHEET_MEASUREMENTS);
   const wsRaw = workbook.getWorksheet(SHEET_RAW);

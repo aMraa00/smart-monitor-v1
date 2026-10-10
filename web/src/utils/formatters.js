@@ -78,13 +78,27 @@ export function deviceStatusLabel(status, t) {
   return translated === key ? status : translated;
 }
 
-/** A device is considered online when it reported inside this window. */
+/** Upper bound for “online” (fleet list default). */
 export const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
-export function isOnline(lastSeenAt) {
+/** Per-device window: ~2.5× sample interval (min 90s, max 5 min). */
+export function onlineWindowMs(sampleIntervalS = 60) {
+  const sec = Math.max(5, Number(sampleIntervalS) || 60);
+  return Math.min(ONLINE_WINDOW_MS, Math.max(90_000, sec * 2.5 * 1000));
+}
+
+export function isOnline(lastSeenAt, sampleIntervalS) {
   if (!lastSeenAt) return false;
   const then = new Date(lastSeenAt).getTime();
-  return Number.isFinite(then) && Date.now() - then <= ONLINE_WINDOW_MS;
+  if (!Number.isFinite(then)) return false;
+  const windowMs = sampleIntervalS !== undefined ? onlineWindowMs(sampleIntervalS) : ONLINE_WINDOW_MS;
+  return Date.now() - then <= windowMs;
+}
+
+export function isDeviceOnline(device) {
+  if (!device) return false;
+  if (['revoked', 'unclaimed', 'offline'].includes(device.status)) return false;
+  return isOnline(device.lastSeenAt, device.config?.sampleIntervalS ?? 60);
 }
 
 export const STATUS_TONE = {

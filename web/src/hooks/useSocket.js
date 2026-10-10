@@ -137,7 +137,7 @@ export function useSocket() {
       if (payload.deviceId) {
         const fields = {
           lastSeenAt: payload.lastSeenAt || new Date().toISOString(),
-          status: payload.online ? 'active' : 'offline',
+          status: payload.online === false ? 'offline' : 'active',
         };
         if (payload.rssi !== undefined || payload.firmwareVersion !== undefined) {
           fields.meta = {
@@ -184,7 +184,17 @@ export function useSocket() {
       dispatch('device:deleted', payload);
     });
 
-    ['telemetry:new', 'alert:raised', 'alert:resolved', 'device:claimed', 'error'].forEach((event) => {
+    ioSocket.on('telemetry:new', (payload = {}) => {
+      if (payload.deviceId) {
+        useDeviceStore.getState().merge(payload.deviceId, {
+          lastSeenAt: payload.ts || new Date().toISOString(),
+          status: 'active',
+        });
+      }
+      dispatch('telemetry:new', payload);
+    });
+
+    ['alert:raised', 'alert:resolved', 'device:claimed', 'error'].forEach((event) => {
       ioSocket.on(event, (payload) => dispatch(event, payload));
     });
 

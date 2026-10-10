@@ -282,6 +282,15 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   overflow: hidden;
+  transition: border-color 0.25s ease, opacity 0.25s ease;
+}
+
+.live-hero--offline {
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.live-hero--offline .live-hero__visual {
+  filter: grayscale(0.85) brightness(0.55);
 }
 
 .live-hero__visual {

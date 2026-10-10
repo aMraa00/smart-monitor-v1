@@ -13,13 +13,30 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useI18n } from '../i18n/useI18n';
 import { alertSeverityLabel } from '../i18n/alertSeverity';
 import { describeCapabilityI18n } from '../utils/capabilities';
-import { formatRelative, isOnline } from '../utils/formatters';
+import { formatRelative, isDeviceOnline, onlineWindowMs } from '../utils/formatters';
 import { useAuth } from '../hooks/useAuth';
 import { hasReportsAccess } from '../utils/reportsAccess';
 import { ReportExportPanel } from '../features/reports/ReportExportPanel';
 
-const STALE_AFTER_MS = 45_000;
 const TIME_TONE = { ntp: 'ok', synced: 'warn', estimated: 'danger' };
+
+function liveStreamBadge(device, latest, now, t) {
+  const intervalS = device?.config?.sampleIntervalS ?? 60;
+  const staleMs = onlineWindowMs(intervalS);
+  const reporting = device ? isDeviceOnline(device) : false;
+
+  if (!reporting) {
+    return { tone: 'danger', label: t('dashboard.deviceOffline') };
+  }
+  if (!latest?.ts) {
+    return { tone: 'neutral', label: t('dashboard.waiting') };
+  }
+  const sampleAge = now - new Date(latest.ts).getTime();
+  if (Number.isFinite(sampleAge) && sampleAge <= staleMs) {
+    return { tone: 'ok', label: t('dashboard.streaming') };
+  }
+  return { tone: 'warn', label: t('dashboard.quiet') };
+}
 
 export function DashboardPage() {
   const { t, dateLocale } = useI18n();
@@ -35,6 +52,12 @@ export function DashboardPage() {
 
   useEffect(() => {
     if (devices.length === 0) load().catch(() => {});
+  }, [devices.length, load]);
+
+  useEffect(() => {
+    if (devices.length === 0) return undefined;
+    const timer = window.setInterval(() => load().catch(() => {}), 60_000);
+    return () => window.clearInterval(timer);
   }, [devices.length, load]);
 
   useEffect(() => {
@@ -81,13 +104,10 @@ export function DashboardPage() {
     return off;
   }, [toast, t]);
 
-  const onlineCount = devices.filter((d) => isOnline(d.lastSeenAt)).length;
-
-  const latestTs = latest ? new Date(latest.ts).getTime() : NaN;
-  const streamAgeMs = Number.isFinite(latestTs) ? Math.max(0, now - latestTs) : NaN;
-  const streamFresh = Number.isFinite(streamAgeMs) && streamAgeMs <= STALE_AFTER_MS;
-  const streamStale = Number.isFinite(streamAgeMs) && streamAgeMs > STALE_AFTER_MS;
-  const deviceOnline = selected ? isOnline(selected.lastSeenAt) : false;
+  const onlineCount = devices.filter((d) => isDeviceOnline(d)).length;
+  const deviceOnline = selected ? isDeviceOnline(selected) : false;
+  const streamBadge = selected ? liveStreamBadge(selected, latest, now, t) : null;
+  const rssi = selected?.meta?.rssi;
 
   if (loading && devices.length === 0) return <LoadingBlock label={t('common.loading')} />;
 
@@ -134,7 +154,7 @@ export function DashboardPage() {
         <div className="device-chips" role="tablist" aria-label="Stations">
           {filtered.map((device) => {
             const active = device.deviceId === selectedId;
-            const online = isOnline(device.lastSeenAt);
+            const online = isDeviceOnline(device);
             return (
               <button
                 key={device.deviceId}
@@ -153,7 +173,10 @@ export function DashboardPage() {
       )}
 
       {selected && (
-        <section className="live-hero" aria-live="polite">
+        <section
+          className={`live-hero ${deviceOnline ? '' : 'live-hero--offline'}`.trim()}
+          aria-live="polite"
+        >
           <div className="live-hero__visual" aria-hidden="true" />
           <div className="live-hero__main">
             <p className="live-hero__eyebrow">{selected.locationName || t('dashboard.myStation')}</p>
@@ -161,18 +184,15 @@ export function DashboardPage() {
             <p className="live-hero__meta muted">
               {t('dashboard.lastSeen')} {formatRelative(selected.lastSeenAt, t, dateLocale)}
               {latest?.ts ? ` · ${t('dashboard.sample')} ${formatRelative(latest.ts, t, dateLocale)}` : ''}
+              {typeof rssi === 'number' ? ` · ${t('dashboard.wifiRssi', { rssi })}` : ''}
             </p>
           </div>
           <div className="live-hero__badges">
-            <Badge tone={deviceOnline ? 'ok' : 'warn'}>{deviceOnline ? t('common.online') : t('common.offline')}</Badge>
+            <Badge tone={deviceOnline ? 'ok' : 'danger'}>{deviceOnline ? t('common.online') : t('common.offline')}</Badge>
             <Badge tone={socketState === 'online' ? 'ok' : socketState === 'connecting' ? 'warn' : 'danger'}>
               {socketState === 'online' ? t('dashboard.socketLive') : socketState}
             </Badge>
-            {latest && (
-              <Badge tone={streamFresh ? 'ok' : streamStale ? 'warn' : 'neutral'}>
-                {streamFresh ? t('dashboard.streaming') : streamStale ? t('dashboard.quiet') : t('dashboard.waiting')}
-              </Badge>
-            )}
+            {streamBadge && <Badge tone={streamBadge.tone}>{streamBadge.label}</Badge>}
           </div>
         </section>
       )}

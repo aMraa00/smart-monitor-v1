@@ -213,6 +213,15 @@ async function ingest(device, payload) {
     capabilities: latestCapabilities,
   });
 
+  emitter.emitToDeviceAndOwner(device.deviceId, device.owner, 'device:status', {
+    deviceId: device.deviceId,
+    online: device.status !== 'revoked',
+    lastSeenAt: device.lastSeenAt,
+    rssi: device.meta?.rssi ?? null,
+    backlog: device.meta?.backlog ?? 0,
+    firmwareVersion: device.firmwareVersion,
+  });
+
   try {
     await alertService.evaluate(device, newest.readings, newest.ts);
   } catch (err) {

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import Badge from '../../components/Badge';
 import { describeCapabilityI18n } from '../../utils/capabilities';
-import { STATUS_TONE, formatRelative, isOnline, deviceStatusLabel } from '../../utils/formatters';
+import { STATUS_TONE, formatRelative, isDeviceOnline, deviceStatusLabel } from '../../utils/formatters';
 import { useI18n } from '../../i18n/useI18n';
 
 /**
@@ -12,7 +12,7 @@ import { useI18n } from '../../i18n/useI18n';
  */
 export function DeviceCard({ device }) {
   const { t, dateLocale } = useI18n();
-  const online = isOnline(device.lastSeenAt);
+  const online = isDeviceOnline(device);
   const name = device.displayName || device.deviceId;
   const capabilities = (device.capabilities || []).slice(0, 6);
   const hidden = (device.capabilities || []).length - capabilities.length;
